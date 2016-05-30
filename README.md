@@ -152,6 +152,124 @@ Yii::app()->factorygirl->build('Foo')->name // -> bar_1
 ```
 
 
+## FactoryTestCase
+
+`YiiFactoryGirl\FactoryTestCase` will support your test data *declarative*.
+
+#### USAGE
+
+- extend your test class with `YiiFactoryGirl\FactoryTestCase`
+- define `$factories` property as array
+- call `$keyname` defined above, like `$this->$keyname`
+
+```php
+class UserTest extends YiiFactoryGirl\FactoryTestCase {
+    /**
+     * @var Array $factories
+     * record definition
+     */
+    protected $factories = [
+        'user1' => 'User',
+        'user2' => ['User', [], 'admin']
+    ];
+
+    public function testUser() {
+        $this->assertNotNull($this->user1->id);   // create record on call
+        $this->assertTrue($this->user2->isAdmin); // with alias
+    }
+}
+```
+
+`YiiFactoryGirl\FactoryTestCase` create relational record automatically.
+
+```php
+    protected $factories = [
+        'blog1' => ['Blog', ['relations' => 'Comments']]
+    ];
+
+    public function testBlog() {
+        $this->assertInstanceOf('Comment', $this->blog1->Comments[0]);
+    }
+```
+
+#### Example
+
+- `Blog` has many `Comment` and belongs to `User`.
+- `User` relation name is `PostedBy` in `Blog`.
+- `Comment` is `Comments`.
+
+```php
+// sample blog model
+class Blog extends CActiveRecord {
+    public function relations() {
+        return [
+            'PostedBy' => [self::BELONGS_TO, 'User', 'User_id'],
+            'Comments' => [self::HAS_MANY, 'Comment', 'Blog_id'],
+        ];
+    }
+}
+```
+
+UserFactory.php
+```php
+return array('attributes' => [], 'user1' => ['name' => 'John Cage']);
+```
+
+testcase
+- define `relations` in attribute
+- use relation name, not model name
+- define `HAS_MANY` relation as some arrays
+- define model or relation name as `'ModelName.alias'`, it will be deployed as `'ModelName'` and `'alias'`
+
+```php
+class BlogTest extends YiiFactoryGirl\FactoryTestCase {
+    /**
+     * @var Array $factories
+     */
+    protected $factories = [
+        'blog1' => ['Blog', ['body' => 'Hello world', 'relations' => [
+            'Comments' => [
+                ['title' => 'test comment1', 'body' => 'hello'],
+                ['title' => 'test comment2', 'body' => 'hello'],
+            ],
+            'PostedBy.user1'
+        ]]]
+    ];
+
+    public function testBlog() {
+        $this->assertCount(2, $this->blog1->Comments); // HAS_MANY record is created
+        $this->assertEquals('John Cage', $this->blog1->PostedBy->name); // called alias
+    }
+}
+```
+
+##### extra
+
+`YiiFactoryGirl\FactoryTestCase::__get($keyname)` calls alias method named `{$ModelName}Factory()` internally.
+
+Alias method is same as `Yii::app()->factorygirl->create($ModelName)`.
+
+call it manually:
+
+```php
+$this->assertNotNull('Jack Nicholson', $this->UserFactory(array('name' => 'Jack Nicholson')));
+```
+
+override alias method:
+
+```php
+protected $factories = ['user1' => 'User'];
+
+public function UserFactory($args = array(), $alias = null) {
+    $args['name'] = 'Jack Nicholson'; // Do handle arguments
+    return parent::UserFactory($args, $alias);
+}
+
+public function testUser() {
+    $this->assertEquals('Jack Nicholson', $this->user1->name); // call overridden method
+}
+```
+
 ## Contributing
 
 Opening issues for feature requests/bug reports is an option but proposing a solution is much more helpful!
