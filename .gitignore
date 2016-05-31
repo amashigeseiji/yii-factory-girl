@@ -12,3 +12,5 @@ nbproject
 # Composer utils
 composer.lock
 vendor/
+
+log
