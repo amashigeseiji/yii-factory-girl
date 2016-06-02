@@ -281,6 +281,8 @@ class Factory extends \CApplicationComponent
 
         // re-enable foreign key check state
         $this->checkIntegrity(true);
+        $obj->setScenario('update');
+        $obj->setIsNewRecord(false);
         return $obj;
     }
 
