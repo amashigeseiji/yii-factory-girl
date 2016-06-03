@@ -227,7 +227,7 @@ class Factory extends \CApplicationComponent
             if ($reflection->hasProperty($key)) {
                 $property = $reflection->getProperty($key);
                 $property->setAccessible(true);
-                $property->setValue($value);
+                $property->isStatic() ? $property->setValue($value) : $property->setValue($obj, $value);
             } else {
                 try {
                     $obj->__set($key, $value);
