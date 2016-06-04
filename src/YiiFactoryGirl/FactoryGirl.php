@@ -54,7 +54,7 @@ class FactoryGirl
 
         $relations = null;
         if (in_array($name, self::$factories)) {
-            extract(self::normalizeArguments($name, $args));
+            extract(self::normalizeArguments(str_replace(self::FACTORY_METHOD_SUFFIX, '', $name), $args));
             $name = 'create';
         }
 
@@ -223,18 +223,31 @@ class FactoryGirl
      * @param Array $args
      * @return Array
      */
-    private static function normalizeArguments($name, Array $args)
+    private static function normalizeArguments($model, Array $arguments)
     {
-        $model = str_replace(self::FACTORY_METHOD_SUFFIX, '', $name);
+        $args = isset($arguments[0]) ? $arguments[0] : array();
+        $alias = isset($arguments[1]) ? $arguments[1] : null;
         $relations = array();
-        if (isset($args[0]['relations'])) {
-            $relations = self::parseRelationArguments($args[0]['relations']);
-            unset($args[0]['relations']);
+
+        if ($args) {
+            if (@class_exists($model)) {
+                $rels = $model::model()->getMetaData()->relations;
+                foreach ($args as $key => $val) {
+                    if (isset($rels[$key])) {
+                        $relations[$key] = $val;
+                        unset($args[$key]);
+                    }
+                }
+            }
+            if (isset($args['relations'])) {
+                $relations = array_merge($args['relations'], $relations);
+                unset($args['relations']);
+            }
         }
 
         return array(
-            'args' => array_merge(array($model), $args),
-            'relations' => $relations
+            'args' => array($model, $args, $alias),
+            'relations' => !$relations ?: self::parseRelationArguments($relations)
         );
     }
 

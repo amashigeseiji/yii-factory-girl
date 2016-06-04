@@ -37,7 +37,28 @@ class FactoryTestCaseTest extends FactoryTestCase
                     ),
                 )
             )
-        ))
+        )),
+        'publisher2' => array('Publisher', array(
+            'name' => 'Iwanami shoten publishers',
+            'Series' => array(
+                array(
+                    'name' => 'Iwanami library',
+                    'Books' => array(
+                        array('name' => 'The letters of Vincent Van Gogh'),
+                        array('name' => 'The Critic of Pure Reason'),
+                        array('name' => 'Discourse on Method')
+                    )
+                ),
+                array(
+                    'name' => 'Iwanami science library',
+                    'Books' => array(
+                        array('name' => 'What is the "Elements" by Euclid?'),
+                        array('name' => 'Why does Human draw a picture?'),
+                    )
+                ),
+            )
+        )
+    )
     );
 
     /**
@@ -125,6 +146,26 @@ class FactoryTestCaseTest extends FactoryTestCase
     {
         $this->assertInstanceOf('Book', $this->author2->Books[0]);
         foreach ($this->publisher->Series as $series) {
+            if ($series->name === 'Iwanami library') {
+                $this->assertCount(3, $series->Books);
+                $bookNames = array_map(function(Book $book) {
+                    return $book->name;
+                }, $series->Books);
+                $this->assertContains('The letters of Vincent Van Gogh', $bookNames);
+                $this->assertContains('The Critic of Pure Reason', $bookNames);
+                $this->assertContains('Discourse on Method', $bookNames);
+            } elseif ($series->name === 'Iwanami science library') {
+                $this->assertCount(2, $series->Books);
+                $bookNames = array_map(function(Book $book) {
+                    return $book->name;
+                }, $series->Books);
+                $this->assertContains('What is the "Elements" by Euclid?', $bookNames);
+                $this->assertContains('Why does Human draw a picture?', $bookNames);
+            } else {
+                $this->fail('invalid series name');
+            }
+        }
+        foreach ($this->publisher2->Series as $series) {
             if ($series->name === 'Iwanami library') {
                 $this->assertCount(3, $series->Books);
                 $bookNames = array_map(function(Book $book) {
