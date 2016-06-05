@@ -24,7 +24,7 @@ class FactoryData extends \CComponent
         $this->className = $className;
         try {
             $this->tableName = $className::model()->tableName();
-        } catch (\CException $e) {
+        } catch (\Exception $e) {
             throw new FactoryException(\Yii::t(Factory::LOG_CATEGORY, 'Unable to call {class}::model()->tableName().', array(
                 '{class}' => $className
             )));
@@ -55,7 +55,7 @@ class FactoryData extends \CComponent
     public static function fromFile($path, $suffix) {
         $parts = explode(DIRECTORY_SEPARATOR, $path);
         $fileName = end($parts);
-        if (!substr($fileName, -(strlen($suffix)) === $suffix || !is_file($path))) {
+        if (!substr($fileName, -(strlen($suffix))) === $suffix || !is_file($path)) {
             throw new FactoryException(\Yii::t(Factory::LOG_CATEGORY, '"{file}" does not seem to be factory data file.', array(
                 '{file}' => $path
             )));
