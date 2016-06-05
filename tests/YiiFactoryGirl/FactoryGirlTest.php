@@ -144,112 +144,101 @@ class FactoryGirlTest extends \PHPUnit_Framework_TestCase
      *
      * @covers ::normalizeArguments
      * @covers ::parseRelationArguments
+     * @dataProvider arguments
      */
-    public function testNormalizeArguments()
+    public function testNormalizeArguments($expected, $model, $args = array(), $alias = null)
     {
-        $invoke = function() {
-            $method = new ReflectionMethod('YiiFactoryGirl\FactoryGirl::normalizeArguments');
-            $method->setAccessible(true);
-            return call_user_func_array(
-                [$method, 'invoke'],
-                array_merge(['YiiFactoryGirl\FactoryGirl'], func_get_args())
-            );
-        };
+        $method = new ReflectionMethod('YiiFactoryGirl\FactoryGirl::normalizeArguments');
+        $method->setAccessible(true);
+        $this->assertEquals($expected, $method->invoke(null, $model, array($args, $alias)));
+    }
 
-        $this->assertEquals(
-            array('args' => array('User'), 'relations' => array()),
-            $invoke('User', array())
-        );
-
-        $this->assertEquals(
-            array(
-                'args' => array('User', array('id' => 1), 'hoge'),
-                'relations' => array()
+    /**
+     * dataProvider for testNormalizeArguments
+     *
+     * @return array
+     */
+    public function arguments()
+    {
+        return array(
+            'noArguments' => array(
+                array('args' => array('User', array(), null), 'relations' => array()),
+                'User'
             ),
-            $invoke('User', array(array('id' => 1), 'hoge'))
-        );
 
-        $this->assertEquals(
-            array(
-                'args' => array('User', array('name' => 'hoge'), 'UserAlias'),
-                'relations' => array(
-                    array('Identity', array('test' => 'hoge'), 'alias'),
-                    array('Hoge', array(), null),
-                )
+            'withArgumentsAndAlias' => array(
+                array('args' => array('User', array('id' => 1), 'hoge'), 'relations' => array()),
+                'User', array('id' => 1), 'hoge'
             ),
-            $invoke('User', array(
+
+            'withRelation' => array(
                 array(
-                    'name' => 'hoge',
+                    'args'      => array('User', array('name' => 'hoge'), 'UserAlias'),
                     'relations' => array(
                         array('Identity', array('test' => 'hoge'), 'alias'),
-                        array('Hoge'),
+                        array('Hoge', array(), null),
                     )
                 ),
-                'UserAlias')
-            )
-        );
-
-        $this->assertEquals(
-            array(
-                'args' => array('User', array('name' => 'hoge', 'fuga' => 'tetete'), 'userAlias'),
-                'relations' => array(
-                    array('Identity', array('test' => 'hoge'), null),
-                    array('Hoge', array(), 'HogeAlias'),
-                    array('Fuga', array(), null)
-                )
+                'User',
+                array('name' => 'hoge', 'relations' => array(
+                    array('Identity', array('test' => 'hoge'), 'alias'),
+                    array('Hoge'),
+                )),
+                'UserAlias'
             ),
-            $invoke('User', array(
+
+            'withRelatin2' => array(
                 array(
-                    'name' => 'hoge',
-                    'fuga' => 'tetete',
+                    'args'      => array('User', array('name' => 'hoge', 'fuga' => 'tetete'), 'userAlias'),
                     'relations' => array(
+                        array('Identity', array('test' => 'hoge'), null),
+                        array('Hoge', array(), 'HogeAlias'),
+                        array('Fuga', array(), null)
+                    )
+                ),
+                'User',
+                array('name' => 'hoge', 'fuga' => 'tetete', 'relations' => array(
                         'Identity' => array('test' => 'hoge'),
                         'Hoge' => 'HogeAlias',
                         'Fuga',
                     )
-                ), 'userAlias')
-            )
-        );
-
-        // HAS_MANY
-        $this->assertEquals(
-            array(
-                'args' => array('User', array(), 'alias'),
-                'relations' => array(
-                    array('Hoge', array('id' => 1), null),
-                    array('Hoge', array('id' => 2), null),
-                )
+                ),
+                'userAlias'
             ),
-            $invoke('User', array(
-                array(
-                    'relations' => array(
-                        // This format is to be interpreted as HAS_MANY relation.
-                        'Hoge' => array(
-                            array('id' => 1),
-                            array('id' => 2),
-                        )
-                    )
-                ), 'alias')
-            )
-        );
 
-        // 'ModleName.alias' format is to be mapped 'ModelName' and 'alias'
-        $this->assertEquals(
-            array(
-                'args' => array('User', array()),
-                'relations' => array(
-                    array('Hoge', array(), 'relationAlias'),
-                    array('Fuga', array('id' => 2), 'alias')
-                )
-            ),
-            $invoke('User', array(
+            'HAS_MANY' => array(
                 array(
+                    'args' => array('User', array(), 'alias'),
                     'relations' => array(
-                        'Hoge.relationAlias',
-                        'Fuga.alias' => array('id' => 2)
+                        array('Hoge', array('id' => 1), null),
+                        array('Hoge', array('id' => 2), null),
                     )
-                )
-            ))
+                ),
+                'User',
+                array('relations' => array(
+                    // This format is to be interpreted as HAS_MANY relation.
+                    'Hoge' => array(
+                        array('id' => 1),
+                        array('id' => 2),
+                    ))
+                ),
+                'alias'
+            ),
+
+            'ModelNameAlias' => array(
+                array(
+                    'args'      => array('User', array(), null),
+                    'relations' => array(
+                        array('Hoge', array(), 'relationAlias'),
+                        array('Fuga', array('id' => 2), 'alias')
+                    )
+                ),
+                'User',
+                array('relations' => array(
+                    'Hoge.relationAlias',
+                    'Fuga.alias' => array('id' => 2)
+                )),
+            ),
         );
     }
 }
