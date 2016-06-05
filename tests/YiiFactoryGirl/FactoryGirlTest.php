@@ -124,6 +124,27 @@ class FactoryGirlTest extends \PHPUnit_Framework_TestCase
             'Books.testAlias'
         )));
         $this->assertEquals('inserted by alias', $author2->Books[0]->name);
+
+        // abbreviated
+        $publisher = FactoryGirl::PublisherFactory(array(
+            'name' => 'O\'Reilly',
+            'Series' => array(
+                'name' => 'Hacks',
+                'Books' => array(
+                    array('name' => 'Raspberry Pi Hacks'),
+                    array('name' => 'HTML5 Hacks'),
+                )
+            )
+        ));
+        $this->assertInstanceOf('Series', $publisher->Series[0]);
+        $this->assertEquals('Hacks', $publisher->Series[0]->name);
+        $this->assertCount(2, $publisher->Series[0]->Books);
+        $bookNames = array();
+        foreach ($publisher->Series[0]->Books as $book) {
+            $bookNames[] = $book->name;
+        }
+        $this->assertContains('Raspberry Pi Hacks', $bookNames);
+        $this->assertContains('HTML5 Hacks', $bookNames);
     }
 
     /**
@@ -239,6 +260,12 @@ class FactoryGirlTest extends \PHPUnit_Framework_TestCase
                     'Fuga.alias' => array('id' => 2)
                 )),
             ),
+
+            'abbreviate' => array(
+                array('args'      => array('Book', array(), null),
+                      'relations' => array(array('Author', array(), null))),
+                'Book', array('Author' => array())
+            )
         );
     }
 }
