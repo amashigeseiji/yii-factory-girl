@@ -62,28 +62,6 @@ class FactoryTestCaseTest extends FactoryTestCase
     );
 
     /**
-     * setUpBeforeClass
-     *
-     * Migrate
-     * @return void
-     */
-    public static function setUpBeforeClass()
-    {
-        Yii::app()->migrate->up();
-    }
-
-    /**
-     * tearDownAfterClass
-     *
-     * Migrate down
-     * @return void
-     */
-    public static function tearDownAfterClass()
-    {
-        Yii::app()->migrate->down();
-    }
-
-    /**
      * @covers ::__get
      */
     public function testFactoryTestCase()

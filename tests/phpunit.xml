@@ -4,4 +4,14 @@
     convertNoticesToExceptions="true"
     convertWarningsToExceptions="true"
     stopOnFailure="false">
+    <filter>
+        <whitelist addUncoveredFilesFromWhitelist="true">
+            <directory suffix=".php">../src</directory>
+        </whitelist>
+    </filter>
+    <testsuites>
+        <testsuite name="testsuite">
+            <directory>./YiiFactoryGirl/*Test.php</directory>
+        </testsuite>
+    </testsuites>
 </phpunit>

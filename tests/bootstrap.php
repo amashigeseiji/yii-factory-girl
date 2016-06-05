@@ -27,3 +27,4 @@ Yii::createWebApplication(array(
         )
     ),
 ));
+Yii::app()->migrate->up();
