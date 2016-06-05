@@ -10,6 +10,7 @@ class FactoryTestCaseTest extends FactoryTestCase
     protected $factories = array(
         'noRelation1'    => 'HaveNoRelation',
         'noRelation2'    => array('HaveNoRelation', array('name' => 'hoge')),
+        'invalidDefinition' => 2,
         'author1'    => 'Author',
         'book1'    => array('Book', array('Author' => 'author1')),
         'notExist' => array('NotExist'),
@@ -71,6 +72,36 @@ class FactoryTestCaseTest extends FactoryTestCase
         $this->assertEquals('hoge', $this->noRelation2->name);
         // Is ActiveRecord cached in FactoryTestCase::$repository?
         $this->assertEquals($this->noRelation1->id, $this->noRelation1->id);
+    }
+
+    /**
+     * @covers ::__get
+     * @expectedException YiiFactoryGirl\FactoryException
+     * @expectedExceptionMessage $factories[invalidDefinition] is invalid definition.
+     */
+    public function testExceptionIfInvalidDefinition()
+    {
+        $this->invalidDefinition;
+    }
+
+    /**
+     * @covers ::__get
+     * @expectedException YiiFactoryGirl\FactoryException
+     * @expectedExceptionMessage Unknown property
+     */
+    public function testExceptionIfUnknownProperty()
+    {
+        $this->unknown;
+    }
+
+    /**
+     * @covers ::__call
+     * @expectedException YiiFactoryGirl\FactoryException
+     * @expectedExceptionMessage Call to undefined method
+     */
+    public function testExceptionIfUnknownMethodIsCalled()
+    {
+        $this->unknownMethod();
     }
 
     /**

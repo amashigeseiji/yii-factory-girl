@@ -12,9 +12,9 @@ Yii::createWebApplication(array(
     //'preload'   => array('log'),
     'import'    => array('application.models.*', 'application.components.*'),
     'components'=> array(
-        'factorygirl' => array(
-            'class' => 'YiiFactoryGirl\Factory',
-        ),
+        //'factorygirl' => array(
+        //    'class' => 'YiiFactoryGirl\Factory',
+        //),
         'db'    => array(
             // @NOTE Make sure database does exist before run test.
             // Rewrite configuration if needed.

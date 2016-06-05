@@ -95,7 +95,7 @@ class FactoryGirl
                     return true;
                 }
             } catch (\Exception $e) {
-                return false;
+                //do nothing
             }
         }
 

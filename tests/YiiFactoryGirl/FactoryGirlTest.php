@@ -8,7 +8,20 @@ use YiiFactoryGirl\FactoryGirl;
 class FactoryGirlTest extends \PHPUnit_Framework_TestCase
 {
     /**
+     * @covers ::getInstance
+     */
+    public function testGetInstance()
+    {
+        if (Yii::app()->hasComponent('factorygirl')) {
+            Yii::app()->setComponent('factorygirl', null);
+        }
+        $this->assertInstanceOf('YiiFactoryGirl\Factory', YiiFactoryGirl\FactoryGirl::getInstance());
+    }
+
+    /**
      * @covers ::isCallable
+     * @covers ::setFactories
+     * @covers ::setReflectionMethods
      */
     public function testIsCallable()
     {
@@ -22,7 +35,7 @@ class FactoryGirlTest extends \PHPUnit_Framework_TestCase
         }
 
         $paths = CFileHelper::findFiles(
-            Yii::app()->factorygirl->basePath,
+            YiiFactoryGirl\FactoryGirl::getInstance()->basePath,
             array('absolutePaths' => false)
         );
 
@@ -34,6 +47,7 @@ class FactoryGirlTest extends \PHPUnit_Framework_TestCase
         $this->assertFalse(FactoryGirl::isCallable('unknownMethod'));
         $this->assertFalse(FactoryGirl::isCallable('notExistModelFactory'));
         $this->assertTrue(FactoryGirl::isCallable('TestFactoryGirl__ARFactory'));
+        $this->assertFalse(FactoryGirl::isCallable('NotExistsFactory'));
     }
 
     /**
