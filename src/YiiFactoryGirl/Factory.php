@@ -219,7 +219,7 @@ class Factory extends \CApplicationComponent
     public function build($class, array $args = array(), $alias = null)
     {
         /* @var $obj \CActiveRecord */
-        $obj = new $class;
+        $obj = $this->instanciate($class);
         $reflection = new \ReflectionObject($obj);
         $factory = $this->getFactoryData($class);
         $attributes = $factory->getAttributes($args, $alias);
@@ -240,6 +240,7 @@ class Factory extends \CApplicationComponent
                 }
             }
         }
+
         return $obj;
     }
 
@@ -305,19 +306,35 @@ class Factory extends \CApplicationComponent
      */
     public function getFactoryData($class) {
         if (!isset($this->_factoryData[$class])) {
-            try {
-                $obj = new $class;
-                if (!($obj instanceof \CActiveRecord)) {
-                    // trigger, catch and rethrow proper error
-                    throw new \CException("Bad param");
-                }
-            } catch (\CException $e) {
-                throw new FactoryException(\Yii::t(self::LOG_CATEGORY, 'There is no {class} class loaded.', array(
-                    '{class}' => $class,
-                )));
-            }
+            $this->instanciate($class);
             $this->_factoryData[$class] = new FactoryData($class);
         }
         return $this->_factoryData[$class];
+    }
+
+    /**
+     * instanciate
+     *
+     * @param string $class
+     * @return \CActiveRecord
+     * @throws FactoryException
+     */
+    private function instanciate($class)
+    {
+        try {
+            $obj = new $class;
+            if (!($obj instanceof \CActiveRecord)) {
+                // trigger, catch and rethrow proper error
+                throw new \CException("{$class} is not CActiveRecord.");
+            }
+        } catch (\CException $e) {
+            throw new FactoryException(\Yii::t(self::LOG_CATEGORY, $e->getMessage()));
+        } catch (\Exception $e) {
+            throw new FactoryException(\Yii::t(self::LOG_CATEGORY, 'There is no {class} class loaded.', array(
+                '{class}' => $class,
+            )));
+        }
+
+        return $obj;
     }
 }
