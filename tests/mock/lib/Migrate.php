@@ -19,6 +19,7 @@ class Migrate extends \CApplicationComponent
         'Publisher'      => array('id' => 'int PRIMARY KEY AUTO_INCREMENT', 'name' => 'varchar(255)'),
         'Series'         => array('id' => 'int PRIMARY KEY AUTO_INCREMENT', 'name' => 'varchar(255)', 'Publisher_id' => 'int'),
         'SameIdToAuthor' => array('id' => 'int PRIMARY KEY AUTO_INCREMENT', 'name' => 'varchar(255)'),
+        'CompositePrimaryKeyTable' => array('pk1' => 'int AUTO_INCREMENT', 'pk2' => 'int', 'PRIMARY KEY(`pk1`, `pk2`)'),
     );
 
     /**
