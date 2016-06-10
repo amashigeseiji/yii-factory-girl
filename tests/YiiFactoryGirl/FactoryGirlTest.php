@@ -35,7 +35,7 @@ class FactoryGirlTest extends \PHPUnit_Framework_TestCase
         }
 
         $paths = CFileHelper::findFiles(
-            YiiFactoryGirl\FactoryGirl::getInstance()->basePath,
+            YiiFactoryGirl\FactoryGirl::getInstance()->getBasePath(),
             array('absolutePaths' => false)
         );
 

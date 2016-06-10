@@ -109,13 +109,9 @@ class FactoryGirl
      */
     private static function setFactories()
     {
-        $paths = \CFileHelper::findFiles(
-            self::getInstance()->basePath,
-            array('absolutePaths' => false)
-        );
         self::$factories = array_map(function($path) {
             return explode('.', $path)[0];
-        }, $paths);
+        }, self::getInstance()->getFiles(false));
     }
 
     /**

@@ -15,6 +15,19 @@ class FactoryTest extends PHPUnit_Framework_TestCase
     }
 
     /**
+     * @covers ::getFiles
+     * @covers ::getBasePath
+     */
+    public function testGetFiles()
+    {
+        $fileNames = YiiFactoryGirl\Factory::getFiles(false); // not absolute path
+        foreach (YiiFactoryGirl\Factory::getFiles() as $path) {
+            $this->assertTrue(file_exists($path));
+            $this->assertTrue(in_array(end(explode(DIRECTORY_SEPARATOR, $path)), $fileNames));
+        }
+    }
+
+    /**
      * @covers ::init
      * @covers ::prepare
      */

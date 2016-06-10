@@ -14,7 +14,7 @@ class FactoryDataTest extends PHPUnit_Framework_TestCase
     public function testFromFile()
     {
         $instance = YiiFactoryGirl\FactoryGirl::getInstance();
-        $paths = CFileHelper::findFiles($instance->basePath);
+        $paths = CFileHelper::findFiles($instance->getBasePath());
         foreach ($paths as $path) {
             $this->assertInstanceOf('YiiFactoryGirl\FactoryData', FactoryData::fromFile($path, $instance->factoryFileSuffix . '.php'));
         }

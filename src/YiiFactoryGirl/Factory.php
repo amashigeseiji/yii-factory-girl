@@ -52,13 +52,27 @@ class Factory extends \CApplicationComponent
     protected $_factoryData;
 
     /**
+     * factory files
+     *
+     * @var array
+     */
+    private static $files = array();
+
+    /**
+     * _basePath
+     *
+     * @var string
+     */
+    private static $_basePath = null;
+
+    /**
      * Initializes this application component.
      */
     public function init()
     {
         parent::init();
-        if ($this->basePath === null) {
-            $this->basePath = \Yii::getPathOfAlias('application.tests.factories');
+        if ($this->basePath) {
+            self::$_basePath = \Yii::getPathOfAlias($this->basePath);
         }
         $this->prepare();
     }
@@ -87,7 +101,7 @@ class Factory extends \CApplicationComponent
      */
     public function prepare()
     {
-        $initFile = $this->basePath . DIRECTORY_SEPARATOR . $this->initScript;
+        $initFile = self::getBasePath() . DIRECTORY_SEPARATOR . $this->initScript;
 
         $this->checkIntegrity(false);
 
@@ -125,7 +139,7 @@ class Factory extends \CApplicationComponent
      */
     public function resetTable($tableName)
     {
-        $initFile = $this->basePath . DIRECTORY_SEPARATOR . $tableName . $this->initScriptSuffix;
+        $initFile = self::getBasePath() . DIRECTORY_SEPARATOR . $tableName . $this->initScriptSuffix;
         if (is_file($initFile)) {
             require($initFile);
         } else {
@@ -144,20 +158,13 @@ class Factory extends \CApplicationComponent
     {
         if ($this->_factoryData === null) {
             $this->_factoryData = array();
-            $folder = opendir($this->basePath);
             $suffixLen = strlen($this->initScriptSuffix);
-            while ($file = readdir($folder)) {
-                if ($file === '.' || $file === '..' || $file === $this->initScript) {
-                    continue;
-                }
-                $path = $this->basePath . DIRECTORY_SEPARATOR . $file;
-                if (substr($file, -4) === '.php' && is_file($path) && substr($file, -$suffixLen) !== $this->initScriptSuffix) {
+            foreach (self::getFiles() as $path) {
+                if (substr(end(explode(DIRECTORY_SEPARATOR, $path)), -$suffixLen) !== $this->initScriptSuffix) {
                     $data = FactoryData::fromFile($path, "{$this->factoryFileSuffix}.php");
                     $this->_factoryData[$data->className] = $data;
-
                 }
             }
-            closedir($folder);
         }
         return $this->_factoryData;
     }
@@ -336,5 +343,35 @@ class Factory extends \CApplicationComponent
         }
 
         return $obj;
+    }
+
+    /**
+     * getFiles
+     *
+     * @param bool $absolute
+     * @return array
+     */
+    public static function getFiles($absolute = true)
+    {
+        if (!self::$files) {
+            self::$files = \CFileHelper::findFiles(self::getBasePath(), array('absolutePaths' => true));
+        }
+
+        return $absolute ? self::$files : array_map(function($file) {
+            return end(explode(DIRECTORY_SEPARATOR, $file));
+        }, self::$files);
+    }
+
+    /**
+     * getBasePath
+     *
+     * @return string
+     */
+    public static function getBasePath()
+    {
+        if (!self::$_basePath) {
+            self::$_basePath = \Yii::getPathOfAlias('application.tests.factories');
+        }
+        return self::$_basePath;
     }
 }
