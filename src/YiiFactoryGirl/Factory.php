@@ -6,6 +6,10 @@ class Factory extends \CApplicationComponent
 {
     const LOG_CATEGORY = 'yii-factory-girl';
 
+    const INIT_SCRIPT_SUFFIX = 'init.php';
+
+    const FACTORY_FILE_SUFFIX = 'Factory';
+
     /**
      * @var string the name of the initialization script that would be executed before the whole test set runs.
      * Defaults to 'init.php'. If the script does not exist, every table with a factory file will be reset.
@@ -45,7 +49,7 @@ class Factory extends \CApplicationComponent
     /**
      * @var \CDbConnection
      */
-    protected $_db;
+    protected static $_db;
     /**
      * @var FactoryData[] (class name => FactoryData)
      */
@@ -56,14 +60,17 @@ class Factory extends \CApplicationComponent
      *
      * @var array
      */
-    private static $files = array();
+    protected static $_files = array();
 
     /**
      * _basePath
      *
      * @var string
      */
-    private static $_basePath = null;
+    protected static $_basePath = null;
+    protected static $_connectionID = 'db';
+    protected static $_tables = array();
+    protected static $_builders = array();
 
     /**
      * Initializes this application component.
@@ -74,6 +81,12 @@ class Factory extends \CApplicationComponent
         if ($this->basePath) {
             self::$_basePath = \Yii::getPathOfAlias($this->basePath);
         }
+        if ($this->connectionID) {
+            self::$_connectionID = $this->connectionID;
+        }
+
+        self::setBuilders();
+
         $this->prepare();
     }
 
@@ -82,16 +95,17 @@ class Factory extends \CApplicationComponent
      * @throws \CException if {@link connectionID} application component is invalid
      * @return \CDbConnection the database connection
      */
-    public function getDbConnection()
+    public static function getDbConnection()
     {
-        if ($this->_db === null) {
-            $this->_db = \Yii::app()->getComponent($this->connectionID);
-            if (!$this->_db instanceof \CDbConnection) {
+        if (self::$_db === null) {
+            $db = \Yii::app()->getComponent(self::$_connectionID);
+            if (!$db instanceof \CDbConnection) {
                 throw new \CException(\Yii::t(self::LOG_CATEGORY, '\YiiFactoryGirl\Factory.connectionID "{id}" is invalid. Please make sure it refers to the ID of a CDbConnection application component.',
-                    array('{id}' => $this->connectionID)));
+                    array('{id}' => self::$_connectionID)));
             }
+            self::$_db = $db;
         }
-        return $this->_db;
+        return self::$_db;
     }
 
     /**
@@ -108,9 +122,8 @@ class Factory extends \CApplicationComponent
         if (is_file($initFile)) {
             require($initFile);
         } else {
-            $factoryData = $this->loadFactoryData();
-            foreach ($factoryData as $className => $factory) {
-                $this->resetTable($factory->tableName);
+            foreach (self::$_tables as $tbl) {
+                $this->resetTable($tbl);
             }
         }
         $this->checkIntegrity(true);
@@ -122,9 +135,8 @@ class Factory extends \CApplicationComponent
      */
     public function flush()
     {
-        $factoryData = $this->loadFactoryData();
-        foreach ($factoryData as $className => $factory) {
-            $this->resetTable($factory->tableName);
+        foreach (self::$_tables as $tbl) {
+            $this->resetTable($tbl);
         }
         Sequence::resetAll();
     }
@@ -225,30 +237,7 @@ class Factory extends \CApplicationComponent
      */
     public function build($class, array $args = array(), $alias = null)
     {
-        /* @var $obj \CActiveRecord */
-        $obj = $this->instanciate($class);
-        $reflection = new \ReflectionObject($obj);
-        $factory = $this->getFactoryData($class);
-        $attributes = $factory->getAttributes($args, $alias);
-        foreach ($attributes as $key => $value) {
-            if ($reflection->hasProperty($key)) {
-                $property = $reflection->getProperty($key);
-                $property->setAccessible(true);
-                $property->isStatic() ? $property->setValue($value) : $property->setValue($obj, $value);
-            } else {
-                try {
-                    $obj->__set($key, $value);
-                } catch(\CException $e) {
-                    \Yii::log($e->getMessage(), \CLogger::LEVEL_ERROR);
-                    throw new FactoryException(\Yii::t(self::LOG_CATEGORY, 'Unknown attribute "{attr} for class {class}.', array(
-                        '{attr}' => $key,
-                        '{class}' => $class
-                    )));
-                }
-            }
-        }
-
-        return $obj;
+        return $this->getBuilder($class)->build($args, $alias);
     }
 
     /**
@@ -260,38 +249,7 @@ class Factory extends \CApplicationComponent
      */
     public function create($class, array $args = array(), $alias = null)
     {
-        $obj = $this->build($class, $args, $alias);
-
-        $schema = $this->getDbConnection()->getSchema();
-        $builder = $schema->getCommandBuilder();
-        $table = $schema->getTable($obj->tableName());
-
-        // make sure it gets inserted
-        $this->checkIntegrity(false);
-
-        // attributes to insert
-        $attributes = $obj->getAttributes();
-        $builder->createInsertCommand($table, $attributes)->execute();
-
-        $primaryKey = $table->primaryKey;
-        if ($table->sequenceName !== null) {
-            if (is_string($primaryKey) && !isset($attributes[$primaryKey])) {
-                $obj->{$primaryKey} = $builder->getLastInsertID($table);
-            } elseif(is_array($primaryKey)) {
-                foreach($primaryKey as $pk) {
-                    if (!isset($attributes[$pk])) {
-                        $obj->{$pk} = $builder->getLastInsertID($table);
-                        break;
-                    }
-                }
-            }
-        }
-
-        // re-enable foreign key check state
-        $this->checkIntegrity(true);
-        $obj->setScenario('update');
-        $obj->setIsNewRecord(false);
-        return $obj;
+        return $this->getBuilder($class)->build($args, $alias, true);
     }
 
     /**
@@ -353,13 +311,13 @@ class Factory extends \CApplicationComponent
      */
     public static function getFiles($absolute = true)
     {
-        if (!self::$files) {
-            self::$files = \CFileHelper::findFiles(self::getBasePath(), array('absolutePaths' => true));
+        if (!self::$_files) {
+            self::$_files = \CFileHelper::findFiles(self::getBasePath(), array('absolutePaths' => true));
         }
 
-        return $absolute ? self::$files : array_map(function($file) {
+        return $absolute ? self::$_files : array_map(function($file) {
             return end(explode(DIRECTORY_SEPARATOR, $file));
-        }, self::$files);
+        }, self::$_files);
     }
 
     /**
@@ -373,5 +331,63 @@ class Factory extends \CApplicationComponent
             self::$_basePath = \Yii::getPathOfAlias('application.tests.factories');
         }
         return self::$_basePath;
+    }
+
+    /**
+     * getFilePath
+     *
+     * @param string $fileName
+     * @param string $suffix
+     * @return string|false
+     */
+    public static function getFilePath($fileName, $suffix = '.php')
+    {
+        $basePath = self::getBasePath() . DIRECTORY_SEPARATOR;
+        $files = self::getFiles();
+        $file = $basePath.$fileName.$suffix;
+        return in_array($file, $files) && file_exists($file) ? $file : false;
+    }
+
+    /**
+     * getBuilder
+     *
+     * @param string $class
+     * @return YiiFactoryGirl\Builder
+     */
+    public static function getBuilder($class)
+    {
+        if (!isset(self::$_builders[$class])) {
+            self::setBuilder($class);
+        }
+        return self::$_builders[$class];
+    }
+
+    /**
+     * setBuilders
+     *
+     * @return void
+     */
+    public static function setBuilders()
+    {
+        $suffixLen = strlen(self::INIT_SCRIPT_SUFFIX);
+        foreach (self::getFiles(false) as $fileName) {
+            if (substr($fileName, -$suffixLen) !== self::INIT_SCRIPT_SUFFIX) {
+                $class = strtr($fileName, array(self::FACTORY_FILE_SUFFIX.'.php' => ''));
+                self::setBuilder($class);
+            }
+        }
+    }
+
+    /**
+     * setBuilder
+     *
+     * @param string $class
+     * @return void
+     */
+    public static function setBuilder($class)
+    {
+        $builder = new Builder($class);
+        self::$_builders[$class] = $builder;
+        self::$_tables[] = $builder->getTableName();
     }
 }
