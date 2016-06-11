@@ -50,10 +50,6 @@ class Factory extends \CApplicationComponent
      * @var \CDbConnection
      */
     protected static $_db;
-    /**
-     * @var FactoryData[] (class name => FactoryData)
-     */
-    protected $_factoryData;
 
     /**
      * factory files
@@ -160,28 +156,6 @@ class Factory extends \CApplicationComponent
     }
 
     /**
-     * Returns the information of the available factories.
-     * This method will search for all PHP files under {@link basePath}.
-     * If a file's name is the same as a table name, it is considered to be the factories data for that table.
-     * @return FactoryData[] the information of the available factories (class name => FactoryData)
-     * @throw FactoryException if there is a misbehaving file in the factory data files path
-     */
-    protected function loadFactoryData()
-    {
-        if ($this->_factoryData === null) {
-            $this->_factoryData = array();
-            $suffixLen = strlen($this->initScriptSuffix);
-            foreach (self::getFiles() as $path) {
-                if (substr(end(explode(DIRECTORY_SEPARATOR, $path)), -$suffixLen) !== $this->initScriptSuffix) {
-                    $data = FactoryData::fromFile($path, "{$this->factoryFileSuffix}.php");
-                    $this->_factoryData[$data->className] = $data;
-                }
-            }
-        }
-        return $this->_factoryData;
-    }
-
-    /**
      * Enables or disables database integrity check.
      * This method may be used to temporarily turn off foreign constraints check.
      * @param boolean $check whether to enable database integrity check
@@ -250,57 +224,6 @@ class Factory extends \CApplicationComponent
     public function create($class, array $args = array(), $alias = null)
     {
         return $this->getBuilder($class)->build($args, $alias, true);
-    }
-
-    /**
-     * Returns array of attributes that can be set to a \CActiveRecord model
-     * @param $class
-     * @param $args
-     * @param $alias
-     * @return array
-     */
-    public function attributes($class, array $args = array(), $alias)
-    {
-        return $this->getFactoryData($class)->getAttributes($args, $alias);
-    }
-
-    /**
-     * @param string $class
-     * @return FactoryData|false
-     * @throws FactoryException
-     */
-    public function getFactoryData($class) {
-        if (!isset($this->_factoryData[$class])) {
-            $this->instanciate($class);
-            $this->_factoryData[$class] = new FactoryData($class);
-        }
-        return $this->_factoryData[$class];
-    }
-
-    /**
-     * instanciate
-     *
-     * @param string $class
-     * @return \CActiveRecord
-     * @throws FactoryException
-     */
-    private function instanciate($class)
-    {
-        try {
-            $obj = new $class;
-            if (!($obj instanceof \CActiveRecord)) {
-                // trigger, catch and rethrow proper error
-                throw new \CException("{$class} is not CActiveRecord.");
-            }
-        } catch (\CException $e) {
-            throw new FactoryException(\Yii::t(self::LOG_CATEGORY, $e->getMessage()));
-        } catch (\Exception $e) {
-            throw new FactoryException(\Yii::t(self::LOG_CATEGORY, 'There is no {class} class loaded.', array(
-                '{class}' => $class,
-            )));
-        }
-
-        return $obj;
     }
 
     /**

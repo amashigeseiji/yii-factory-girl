@@ -9,7 +9,6 @@ namespace YiiFactoryGirl;
  */
 class FactoryData extends \CComponent
 {
-    public $tableName;
     public $className;
     public $attributes;
     public $aliases;
@@ -22,13 +21,6 @@ class FactoryData extends \CComponent
      */
     public function __construct($className, array $attributes = array(), array $aliases = array()) {
         $this->className = $className;
-        try {
-            $this->tableName = $className::model()->tableName();
-        } catch (\Exception $e) {
-            throw new FactoryException(\Yii::t(Factory::LOG_CATEGORY, 'Unable to call {class}::model()->tableName().', array(
-                '{class}' => $className
-            )));
-        }
         $this->attributes = $attributes;
         $this->aliases = $aliases;
     }
