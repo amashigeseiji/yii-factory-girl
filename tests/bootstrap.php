@@ -6,11 +6,12 @@ $path = function() {
 
 require_once($path('vendor', 'autoload.php'));
 require_once($path('vendor', 'yiisoft', 'yii', 'framework', 'yiit.php'));
+require_once($path('tests', 'lib', 'YiiFactoryGirl_Unit_TestCase.php'));
 
 Yii::createWebApplication(array(
     'basePath'  => $path('tests', 'mock'),
     //'preload'   => array('log'),
-    'import'    => array('application.models.*', 'application.components.*'),
+    'import'    => array('application.models.*', 'application.components.*', 'application.form.*'),
     'components'=> array(
         //'factorygirl' => array(
         //    'class' => 'YiiFactoryGirl\Factory',
