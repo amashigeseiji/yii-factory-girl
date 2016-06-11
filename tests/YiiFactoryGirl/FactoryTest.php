@@ -11,7 +11,9 @@ class FactoryTest extends PHPUnit_Framework_TestCase
 
     public function setUp()
     {
-        $this->resetInstance();
+        if ($this->getInstance()->connectionID !== 'db') {
+            $this->resetInstance();
+        }
     }
 
     /**
@@ -55,7 +57,12 @@ class FactoryTest extends PHPUnit_Framework_TestCase
      */
     public function testGetDbConnectionFail()
     {
+        $this->resetInstance();
         Yii::app()->setComponent('factorygirl', array('connectionID' => 'migrate'), true);
+        $reflection = new ReflectionObject(Yii::app()->factorygirl);
+        $property = $reflection->getProperty('_db');
+        $property->setAccessible(true);
+        $property->setValue(Yii::app()->factorygirl, null);
         Yii::app()->factorygirl->getDbConnection();
     }
 
@@ -87,23 +94,6 @@ class FactoryTest extends PHPUnit_Framework_TestCase
     public function testTruncateTableFailIfTableNotExists()
     {
         $this->invoke('truncateTable', 'NotExist');
-    }
-
-    /**
-     * @covers ::loadFactoryData
-     */
-    public function testLoadFactoryData()
-    {
-        $files = CFileHelper::findFiles(Yii::getPathOfAlias('application.tests.factories'), array('absolutePaths' => false));
-        $this->assertCount(count($files), $this->invoke('loadFactoryData'));
-        $this->invoke('build', 'Publisher'); // not exists factory file
-        $this->assertCount(count($files) + 1, $this->invoke('loadFactoryData'));
-        $data = $this->invoke('loadFactoryData');
-        $this->assertInstanceOf('YiiFactoryGirl\FactoryData', $data['Publisher']);
-        foreach ($files as $file) {
-            $name = str_replace($this->getInstance()->factoryFileSuffix . '.php', '', $file);
-            $this->assertTrue(array_key_exists($name, $data));
-        }
     }
 
     /**
@@ -154,51 +144,6 @@ class FactoryTest extends PHPUnit_Framework_TestCase
         $composite = $this->invoke('create', 'Composite', array('pk2' => 1));
         $this->assertInstanceOf('Composite', $composite);
         $this->assertInstanceOf('Composite', Composite::model()->findByPk(array($composite->primaryKey)));
-    }
-
-    /**
-     * @covers ::instanciate
-     */
-    public function testInstanciateSuccessIfActiveRecord()
-    {
-        $this->invoke('instanciate', 'Book');
-    }
-
-    /**
-     * @covers ::instanciate
-     * @expectedException YiiFactoryGirl\FactoryException
-     * @expectedExceptionMessage is not CActiveRecord.
-     */
-    public function testInstanciateFailIfNotActiveRecord()
-    {
-        $this->invoke('instanciate', 'CList');
-    }
-
-    /**
-     * @covers ::instanciate
-     * @expectedException YiiFactoryGirl\FactoryException
-     * @expectedExceptionMessage There is no
-     */
-    public function testInstanciateFailIfNotExists()
-    {
-        $this->invoke('instanciate', 'NotExistClass');
-    }
-
-    /**
-     * @covers ::getFactoryData
-     */
-    public function testGetFactoryData()
-    {
-        $this->assertInstanceOf('YiiFactoryGirl\FactoryData', $this->invoke('getFactoryData', 'Book'));
-        $this->assertInstanceOf('YiiFactoryGirl\FactoryData', $this->invoke('getFactoryData', 'Series'));
-    }
-
-    /**
-     * @covers ::attributes
-     */
-    public function testAttributes()
-    {
-        $this->assertEquals(array(), $this->invoke('attributes', 'HaveNoRelation', array(), null));
     }
 
     /**

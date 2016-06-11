@@ -54,16 +54,6 @@ class FactoryDataTest extends PHPUnit_Framework_TestCase
     }
 
     /**
-     * @covers ::__construct
-     * @expectedException YiiFactoryGirl\FactoryException
-     * @expectedExceptionMessage Unable to call
-     */
-    public function testConstructorFailIfNotExist()
-    {
-        new FactoryData('notExist');
-    }
-
-    /**
      * @covers ::getAttributes
      * @expectedException YiiFactoryGirl\FactoryException
      * @expectedExceptionMessage Alias "invalidAlias" not found
