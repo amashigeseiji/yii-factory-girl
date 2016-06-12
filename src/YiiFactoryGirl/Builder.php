@@ -107,37 +107,7 @@ class Builder
      */
     private function create(\CActiveRecord $obj)
     {
-        $schema = Factory::getDbConnection()->getSchema();
-        $builder = $schema->getCommandBuilder();
-        $table = $schema->getTable($obj->tableName());
-
-        // attributes to insert
-        $attributes = $obj->getAttributes();
-
-        // make sure it gets inserted
-        $schema->checkIntegrity(false);
-        $builder->createInsertCommand($table, $attributes)->execute();
-
-        $primaryKey = $table->primaryKey;
-        if ($table->sequenceName !== null) {
-            if (is_string($primaryKey) && !isset($attributes[$primaryKey])) {
-                $obj->{$primaryKey} = $builder->getLastInsertID($table);
-            } elseif(is_array($primaryKey)) {
-                foreach($primaryKey as $pk) {
-                    if (!isset($attributes[$pk])) {
-                        $obj->{$pk} = $builder->getLastInsertID($table);
-                        break;
-                    }
-                }
-            }
-        }
-
-        $schema->checkIntegrity(true);
-
-        $obj->setScenario('update');
-        $obj->setIsNewRecord(false);
-
-        return $obj;
+        return Creator::create($obj);
     }
 
     /**

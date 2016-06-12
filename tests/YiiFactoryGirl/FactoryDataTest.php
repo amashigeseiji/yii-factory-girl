@@ -13,7 +13,7 @@ class FactoryDataTest extends PHPUnit_Framework_TestCase
      */
     public function testFromFile()
     {
-        $instance = YiiFactoryGirl\FactoryGirl::getInstance();
+        $instance = YiiFactoryGirl\Factory::getComponent();
         $paths = CFileHelper::findFiles($instance->getBasePath());
         foreach ($paths as $path) {
             $this->assertInstanceOf('YiiFactoryGirl\FactoryData', FactoryData::fromFile($path, $instance->factoryFileSuffix . '.php'));
@@ -65,7 +65,7 @@ class FactoryDataTest extends PHPUnit_Framework_TestCase
 
     private function path($class, $pathAlias = 'application.tests.factories')
     {
-        $instance = YiiFactoryGirl\FactoryGirl::getInstance();
+        $instance = YiiFactoryGirl\Factory::getComponent();
         $suffix = $instance->factoryFileSuffix . '.php';
         return array('path' => \Yii::getPathOfAlias($pathAlias) . DIRECTORY_SEPARATOR . $class . $suffix, 'suffix' => $suffix);
     }

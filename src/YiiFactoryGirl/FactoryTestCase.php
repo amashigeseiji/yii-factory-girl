@@ -94,7 +94,7 @@ abstract class FactoryTestCase extends \CTestCase
                 } else {
                     throw new FactoryException('$factories[' . $name . '] is invalid definition.');
                 }
-                $method = $class . FactoryGirl::FACTORY_METHOD_SUFFIX;
+                $method = $class . Creator::FACTORY_METHOD_SUFFIX;
                 $this->repository[$name] = call_user_func_array(array($this, $method), $args);
             }
 
@@ -114,8 +114,8 @@ abstract class FactoryTestCase extends \CTestCase
      */
     public function __call($name, $args)
     {
-        if (FactoryGirl::isCallable($name)) {
-            return call_user_func_array(array('YiiFactoryGirl\FactoryGirl', $name), $args);
+        if (Creator::isCallable($name)) {
+            return call_user_func_array(array('YiiFactoryGirl\Creator', $name), $args);
         }
 
         throw new FactoryException('Call to undefined method ' . get_class($this) . "::{$name}().");
@@ -131,7 +131,7 @@ abstract class FactoryTestCase extends \CTestCase
      */
     protected function truncateTable($tableName)
     {
-        FactoryGirl::truncateTable($tableName);
+        Factory::getComponent()->truncateTable($tableName);
         foreach ($this->repository as $key => $record) {
             if ($record->tableName() === $tableName) {
                 unset($this->repository[$key]);

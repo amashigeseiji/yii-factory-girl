@@ -1,23 +1,12 @@
 <?php
 
-use YiiFactoryGirl\FactoryGirl;
+use YiiFactoryGirl\Creator;
 
 /**
- * @coversDefaultClass YiiFactoryGirl\FactoryGirl
+ * @coversDefaultClass YiiFactoryGirl\Creator
  */
-class FactoryGirlTest extends \PHPUnit_Framework_TestCase
+class CreatorTest extends YiiFactoryGirl_Unit_TestCase
 {
-    /**
-     * @covers ::getInstance
-     */
-    public function testGetInstance()
-    {
-        if (Yii::app()->hasComponent('factorygirl')) {
-            Yii::app()->setComponent('factorygirl', null);
-        }
-        $this->assertInstanceOf('YiiFactoryGirl\Factory', YiiFactoryGirl\FactoryGirl::getInstance());
-    }
-
     /**
      * @covers ::isCallable
      * @covers ::setFactories
@@ -25,29 +14,29 @@ class FactoryGirlTest extends \PHPUnit_Framework_TestCase
      */
     public function testIsCallable()
     {
-        $reflection = new ReflectionClass('YiiFactoryGirl\Factory');
+        $reflection = new ReflectionClass('YiiFactoryGirl\Creator');
         foreach ($reflection->getMethods() as $method) {
-            if ($method->class === 'CComponent' || $method->class === 'CApplicationComponent' || !$method->isPublic()) {
-                $this->assertFalse(FactoryGirl::isCallable($method->name));
+            if (!$method->isPublic()) {
+                $this->assertFalse(Creator::isCallable($method->name));
             } else {
-                $this->assertTrue(FactoryGirl::isCallable($method->name));
+                $this->assertTrue(Creator::isCallable($method->name));
             }
         }
 
         $paths = CFileHelper::findFiles(
-            YiiFactoryGirl\FactoryGirl::getInstance()->getBasePath(),
+            YiiFactoryGirl\Factory::getBasePath(),
             array('absolutePaths' => false)
         );
 
         foreach ($paths as $file) {
             $factory = explode('.', $file)[0];
-            $this->assertTrue(FactoryGirl::isCallable($factory));
+            $this->assertTrue(Creator::isCallable($factory));
         }
 
-        $this->assertFalse(FactoryGirl::isCallable('unknownMethod'));
-        $this->assertFalse(FactoryGirl::isCallable('notExistModelFactory'));
-        $this->assertTrue(FactoryGirl::isCallable('TestFactoryGirl__ARFactory'));
-        $this->assertFalse(FactoryGirl::isCallable('NotExistsFactory'));
+        $this->assertFalse(Creator::isCallable('unknownMethod'));
+        $this->assertFalse(Creator::isCallable('notExistModelFactory'));
+        $this->assertTrue(Creator::isCallable('TestFactoryGirl__ARFactory'));
+        $this->assertFalse(Creator::isCallable('NotExistsFactory'));
     }
 
     /**
@@ -55,8 +44,8 @@ class FactoryGirlTest extends \PHPUnit_Framework_TestCase
      */
     public function testEmulatedMethod()
     {
-        $this->assertTrue(FactoryGirl::HaveNoRelationFactory() instanceof HaveNoRelation);
-        $this->assertEquals('hoge', FactoryGirl::HaveNoRelationFactory(array('name' => 'hoge'))->name);
+        $this->assertTrue(Creator::HaveNoRelationFactory() instanceof HaveNoRelation);
+        $this->assertEquals('hoge', Creator::HaveNoRelationFactory(array('name' => 'hoge'))->name);
     }
 
     /**
@@ -65,10 +54,11 @@ class FactoryGirlTest extends \PHPUnit_Framework_TestCase
      */
     public function testNotCallable()
     {
-        FactoryGirl::HogeFugaFactory();
+        Creator::HogeFugaFactory();
     }
 
     /**
+     * @covers ::create
      * @covers ::__callStatic
      * @covers ::createRelations
      * @covers ::createRelation
@@ -76,17 +66,17 @@ class FactoryGirlTest extends \PHPUnit_Framework_TestCase
     public function testRelations()
     {
         // Not have relation
-        $this->assertNull(FactoryGirl::BookFactory()->Author);
+        $this->assertNull(Creator::BookFactory()->Author);
 
         // BELONGS_TO
-        $book1 = FactoryGirl::BookFactory(array('relations' => array(
+        $book1 = Creator::BookFactory(array('relations' => array(
             array('Author', array('name' => 'Dazai Osamu')), // BelongsTo
         )));
         $this->assertInstanceOf('Author', $book1->Author);
         $this->assertEquals('Dazai Osamu', $book1->Author->name);
 
         // HAS_MANY
-        $author = FactoryGirl::AuthorFactory(array('name' => 'Fyodor Dostoevsky', 'relations' => array(
+        $author = Creator::AuthorFactory(array('name' => 'Fyodor Dostoevsky', 'relations' => array(
             'Books' => array(
                 array('name' => 'Crime and Punishment'),
                 array('name' => 'Notes from Underground'),
@@ -100,25 +90,25 @@ class FactoryGirlTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals('The Brothers Karamazov', $book2->name);
 
         // HAS_ONE
-        $book3 = FactoryGirl::BookFactory(array('relations' => array(
+        $book3 = Creator::BookFactory(array('relations' => array(
             'Colophon'
         )));
         $this->assertInstanceOf('Colophon', $book3->Colophon);
 
         // recursive
-        $book4 = FactoryGirl::BookFactory(array('relations' => array(
+        $book4 = Creator::BookFactory(array('relations' => array(
             'Colophon' => array('relations' => array('PublishedBy'))
         )));
         $this->assertEquals($book4->Colophon->Publisher_id, $book4->Colophon->PublishedBy->id);
 
         // relation's alias
-        $author2 = FactoryGirl::AuthorFactory(array('relations' => array(
+        $author2 = Creator::AuthorFactory(array('relations' => array(
             'Books.testAlias'
         )));
         $this->assertEquals('inserted by alias', $author2->Books[0]->name);
 
         // abbreviated
-        $publisher = FactoryGirl::PublisherFactory(array(
+        $publisher = Creator::PublisherFactory(array(
             'name' => 'O\'Reilly',
             'Series' => array(
                 'name' => 'Hacks',
@@ -146,9 +136,9 @@ class FactoryGirlTest extends \PHPUnit_Framework_TestCase
      */
     public function testExceptionIfPrimaryKeyAndForeignKeyHasSameName()
     {
-        FactoryGirl::prepare();
-        FactoryGirl::SameIdToAuthorFactory(array('id' => 1, 'relations' => array(
-            'Author' =>  array('id' => 2)
+        YiiFactoryGirl\Factory::getComponent()->prepare();
+        Creator::SameIdToAuthorFactory(array('id' => 10, 'relations' => array(
+            'Author' =>  array('id' => 20)
         )));
     }
 
@@ -161,7 +151,7 @@ class FactoryGirlTest extends \PHPUnit_Framework_TestCase
      */
     public function testNormalizeArguments($expected, $model, $args = array(), $alias = null)
     {
-        $method = new ReflectionMethod('YiiFactoryGirl\FactoryGirl::normalizeArguments');
+        $method = new ReflectionMethod('YiiFactoryGirl\Creator::normalizeArguments');
         $method->setAccessible(true);
         $this->assertEquals($expected, $method->invoke(null, $model, array($args, $alias)));
     }

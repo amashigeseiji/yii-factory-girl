@@ -313,4 +313,20 @@ class Factory extends \CApplicationComponent
         self::$_builders[$class] = $builder;
         self::$_tables[] = $builder->getTableName();
     }
+
+    /**
+     * getComponent
+     *
+     * If not set factorygirl component, this method set it.
+     * component name is expected as `factorygirl`.
+     * @return YiiFactoryGirl\Factory
+     */
+    public static function getComponent()
+    {
+        if (!\Yii::app()->hasComponent('factorygirl')) {
+            \Yii::app()->setComponent('factorygirl', array('class' => 'YiiFactoryGirl\Factory'));
+        }
+
+        return \Yii::app()->factorygirl;
+    }
 }

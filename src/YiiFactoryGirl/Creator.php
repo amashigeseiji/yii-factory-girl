@@ -1,18 +1,17 @@
 <?php
-
 /**
- * FactoryGirl
+ * ActiveRecord creator
  *
- * Wrapper class of YiiFactoryGirl\Factory.
- *
- * @see YiiFactoryGirl\Factory
  * @author Seiji Amashige <tenjuu99@gmail.com>
  * @package YiiFactoryGirl
  */
 
 namespace YiiFactoryGirl;
 
-class FactoryGirl
+/**
+ * Creator
+ */
+class Creator
 {
     /**
      * FACTORY_METHOD_SUFFIX
@@ -36,6 +35,47 @@ class FactoryGirl
     private static $callable = array();
 
     /**
+     * create
+     *
+     * @param \CActiveRecord $obj
+     * @return \CActiveRecord
+     */
+    public static function create(\CActiveRecord $obj)
+    {
+        $schema = Factory::getDbConnection()->getSchema();
+        $builder = $schema->getCommandBuilder();
+        $table = $schema->getTable($obj->tableName());
+
+        // attributes to insert
+        $attributes = $obj->getAttributes();
+
+        // make sure it gets inserted
+        $schema->checkIntegrity(false);
+        $builder->createInsertCommand($table, $attributes)->execute();
+
+        $primaryKey = $table->primaryKey;
+        if ($table->sequenceName !== null) {
+            if (is_string($primaryKey) && !isset($attributes[$primaryKey])) {
+                $obj->{$primaryKey} = $builder->getLastInsertID($table);
+            } elseif(is_array($primaryKey)) {
+                foreach($primaryKey as $pk) {
+                    if (!isset($attributes[$pk])) {
+                        $obj->{$pk} = $builder->getLastInsertID($table);
+                        break;
+                    }
+                }
+            }
+        }
+
+        $schema->checkIntegrity(true);
+
+        $obj->setScenario('update');
+        $obj->setIsNewRecord(false);
+
+        return $obj;
+    }
+
+    /**
      * __callStatic
      *
      * This method emulates factory method
@@ -52,19 +92,17 @@ class FactoryGirl
             throw new FactoryException('Call to undefined method ' . __CLASS__ . "::{$name}().");
         }
 
-        $relations = null;
         if (in_array($name, self::$factories)) {
+            $relations = null;
             extract(self::normalizeArguments(str_replace(self::FACTORY_METHOD_SUFFIX, '', $name), $args));
-            $name = 'create';
+            @list($class, $attr, $alias) = $args;
+            $result = Factory::getComponent()->create($class, $attr, $alias);
+            if ($relations) {
+                self::createRelations($result, $relations);
+            }
+        } else {
+            $result = call_user_func_array(self::$name, $args);
         }
-
-        $result = call_user_func_array(array(self::getInstance(), $name), $args);
-
-        $isActiveRecord = is_object($result) ? is_subclass_of($result, 'CActiveRecord') : false;
-        if ($isActiveRecord && $relations) {
-            self::createRelations($result, $relations);
-        }
-
         return $result;
     }
 
@@ -111,7 +149,7 @@ class FactoryGirl
     {
         self::$factories = array_map(function($path) {
             return explode('.', $path)[0];
-        }, self::getInstance()->getFiles(false));
+        }, Factory::getComponent()->getFiles(false));
     }
 
     /**
@@ -121,28 +159,12 @@ class FactoryGirl
      */
     private static function setReflectionMethods()
     {
-        $reflection = new \ReflectionClass('YiiFactoryGirl\Factory');
+        $reflection = new \ReflectionClass('YiiFactoryGirl\Creator');
         foreach ($reflection->getMethods() as $method) {
-            if ($method->class !== 'CComponent' && $method->class !== 'CApplicationComponent' && $method->isPublic()) {
+            if ($method->isPublic()) {
                 self::$reflectionMethods[] = $method->name;
             }
         }
-    }
-
-    /**
-     * getInstance
-     *
-     * If not set factorygirl component, this method set it.
-     * component name is expected as `factorygirl`.
-     * @return YiiFactoryGirl\Factory
-     */
-    public static function getInstance()
-    {
-        if (!\Yii::app()->hasComponent('factorygirl')) {
-            \Yii::app()->setComponent('factorygirl', array('class' => 'YiiFactoryGirl\Factory'));
-        }
-
-        return \Yii::app()->factorygirl;
     }
 
     /**
