@@ -5,7 +5,7 @@ use YiiFactoryGirl\Factory;
 /**
  * @coversDefaultClass YiiFactoryGirl\Factory
  */
-class FactoryTest extends PHPUnit_Framework_TestCase
+class FactoryTest extends YiiFactoryGirl_Unit_TestCase
 {
     private $reflection = null;
 
@@ -52,18 +52,11 @@ class FactoryTest extends PHPUnit_Framework_TestCase
 
     /**
      * @covers ::getDbConnection
-     * @expectedException CException
-     * @expectedExceptionMessage \YiiFactoryGirl\Factory.connectionID
+     * @dataProvider getDbConnectionFail
      */
-    public function testGetDbConnectionFail()
+    public function testGetDbConnectionFail($exception, callable $callback)
     {
-        $this->resetInstance();
-        Yii::app()->setComponent('factorygirl', array('connectionID' => 'migrate'), true);
-        $reflection = new ReflectionObject(Yii::app()->factorygirl);
-        $property = $reflection->getProperty('_db');
-        $property->setAccessible(true);
-        $property->setValue(Yii::app()->factorygirl, null);
-        Yii::app()->factorygirl->getDbConnection();
+        $this->assertFail($exception, $callback);
     }
 
     /**
@@ -88,62 +81,38 @@ class FactoryTest extends PHPUnit_Framework_TestCase
 
     /**
      * @covers ::truncateTable
-     * @expectedException CException
-     * @expectedExceptionMessage Table 'NotExist' does not exist.
+     * @dataProvider truncateTableFail
      */
-    public function testTruncateTableFailIfTableNotExists()
+    public function testTruncateTableFailIfTableNotExists($exception, callable $callback)
     {
-        $this->invoke('truncateTable', 'NotExist');
+        $this->assertFail($exception, $callback);
     }
 
     /**
      * @covers ::build
+     * @dataProvider buildSuccess
      */
-    public function testBuildSuccess()
+    public function testBuildSuccess($assert, callable $callback, $expected = null)
     {
-        $this->assertInstanceOf('Book', $this->invoke('build', 'Book'));
-        $this->assertEquals('test name', $this->invoke('build', 'Book', array('name' => 'test name'))->name);
-        // property
-        $obj = $this->invoke('build', 'HaveNoRelation', array('staticProperty' => 'static property set from reflection property'));
-        $this->assertEquals('static property set from reflection property', $obj::$staticProperty);
-        $this->assertEquals('public property set from reflection property', $this->invoke('build', 'HaveNoRelation', array('publicProperty' => 'public property set from reflection property'))->publicProperty);
-        $this->assertEquals('private property set from reflection property', $this->invoke('build', 'HaveNoRelation', array('publicProperty' => 'private property set from reflection property'))->publicProperty);
+        $this->assertion($assert, $expected, $callback);
     }
 
     /**
      * @covers ::build
-     * @expectedException YiiFactoryGirl\FactoryException
-     * @expectedExceptionMessage Unknown attribute
+     * @dataProvider buildFail
      */
-    public function testBuildFail()
+    public function testBuildFail($exception, callable $callback)
     {
-        $this->invoke('build', 'HaveNoRelation', array('hoge' => 'hoge'));
-    }
-
-    /**
-     * @covers ::build
-     * @expectedException YiiFactoryGirl\FactoryException
-     * @expectedExceptionMessage There is no
-     */
-    public function testBuildFailIfClassNotExists()
-    {
-        $this->invoke('build', 'FailClass');
+        $this->assertFail($exception, $callback);
     }
 
     /**
      * @covers ::create
-     * @covers ::build
+     * @dataProvider createSuccess
      */
-    public function testCreateSuccess()
+    public function testCreateSuccess($assert, callable $callback, $expected = null)
     {
-        $created = $this->invoke('create', 'Book');
-        $this->assertInstanceOf('Book', $created);
-        $this->assertNotNull($created->id);
-        $this->assertEquals(Book::model()->findByPk($created->id)->id, $created->id);
-        // composite primary key
-        $composite = $this->invoke('create', 'Composite', array('pk2' => 1));
-        $this->assertInstanceOf('Composite', $composite);
-        $this->assertInstanceOf('Composite', Composite::model()->findByPk(array($composite->primaryKey)));
+        $this->assertion($assert, $expected, $callback);
     }
 
     /**
@@ -167,6 +136,125 @@ class FactoryTest extends PHPUnit_Framework_TestCase
         $this->invoke('flush');
         $this->assertEquals(0, Book::model()->count());
         $this->assertEquals(0, Author::model()->count());
+    }
+
+    public function getDbConnectionFail()
+    {
+        return array(
+            array(
+                'exception' => array('CException', '/\\\YiiFactoryGirl\\\Factory.connectionID "migrate" is invalid/'),
+                'callback'  => function() {
+                    $this->resetInstance();
+                    Yii::app()->setComponent('factorygirl', array('connectionID' => 'migrate'), true);
+                    $reflection = new ReflectionObject(Yii::app()->factorygirl);
+                    $property = $reflection->getProperty('_db');
+                    $property->setAccessible(true);
+                    $property->setValue(Yii::app()->factorygirl, null);
+                    Yii::app()->factorygirl->getDbConnection();
+                }
+            )
+        );
+    }
+
+    public function truncateTableFail()
+    {
+        return array(
+            array(
+                'exception' => array('CException', "/Table 'NotExist' does not exist/"),
+                'callback' => function() {
+                    $this->invoke('truncateTable', 'NotExist');
+                }
+            )
+        );
+    }
+
+    public function buildSuccess()
+    {
+        return array(
+            array(
+                'assert' => 'InstanceOf',
+                'callback' => function() {
+                    return $this->invoke('build', 'Book');
+                },
+                'expected' => 'Book'
+            ),
+            array(
+                'assert' => 'Equals',
+                'callback' => function() {
+                    return $this->invoke('build', 'Book', array('name' => 'test name'))->name;
+                },
+                'expected' => 'test name'
+            ),
+            array(
+                'assert' => 'Equals',
+                'callback' => function() {
+                    return $this->invoke('build', 'Book', array(), 'testAlias')->name;
+                },
+                'expected' => 'inserted by alias'
+            )
+        );
+    }
+
+    public function buildFail()
+    {
+        return array(
+            array(
+                'exception' => array('YiiFactoryGirl\FactoryException', '/Unknown attribute/'),
+                'callback'  => function() {
+                    $this->invoke('build', 'HaveNoRelation', array('hoge' => 'hoge'));
+                }
+            ),
+            array(
+                'exception' => array('YiiFactoryGirl\FactoryException', '/There is no/'),
+                'callback'  => function() {
+                    $this->invoke('build', 'FailClass');
+                }
+            ),
+        );
+    }
+
+    public function createSuccess()
+    {
+        return array(
+            array(
+                'assert' => 'InstanceOf',
+                'callback' => function() {
+                    return $this->invoke('create', 'Book');
+                },
+                'expected' => 'Book'
+            ),
+            array(
+                'assert' => 'NotNull',
+                'callback' => function() {
+                    return $this->invoke('create', 'Book')->id;
+                },
+            ),
+            array(
+                'assert' => 'Equals',
+                'callback' => function() {
+                    return $this->invoke('create', 'Book')->id;
+                },
+                'expected' => function($result) {
+                    return Book::model()->findByPk($result)->id;
+                }
+            ),
+            'composite' => array(
+                'assert' => 'InstanceOf',
+                'callback' => function() {
+                    return $this->invoke('create', 'Composite', array('pk2' => '{{sequence(:Composite_pk2)}}'));
+                },
+                'expected' => 'Composite'
+            ),
+            'composite2' => array(
+                'assert' => 'Equals',
+                'callback' => function() {
+                    return $this->invoke('create', 'Composite', array('pk2' => '{{sequence(:Composite_pk2)}}'))->primaryKey;
+                },
+                'expected' => function($result) {
+                    return Composite::model()->findByPk($result)->primaryKey;
+                }
+            ),
+        );
     }
 
     /**
@@ -200,9 +288,11 @@ class FactoryTest extends PHPUnit_Framework_TestCase
      * @param string $name method name
      * @return mixed
      */
-    private function invoke($name)
+    protected function invoke($name)
     {
-        $this->reflection = new ReflectionObject($this->getInstance());
+        if (!$this->reflection) {
+            $this->reflection = new ReflectionObject($this->getInstance());
+        }
         $method = $this->reflection->getMethod($name);
         $method->setAccessible(true);
         $args = func_get_args();
