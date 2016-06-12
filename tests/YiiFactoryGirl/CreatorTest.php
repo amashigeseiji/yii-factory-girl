@@ -11,41 +11,26 @@ class CreatorTest extends YiiFactoryGirl_Unit_TestCase
      * @covers ::isCallable
      * @covers ::setFactories
      * @covers ::setReflectionMethods
+     * @dataProvider isCallableSuccess
      */
-    public function testIsCallable()
+    public function testIsCallableSuccess($assert, callable $callback, $expected = null)
     {
         $reflection = new ReflectionClass('YiiFactoryGirl\Creator');
-        foreach ($reflection->getMethods() as $method) {
-            if (!$method->isPublic()) {
-                $this->assertFalse(Creator::isCallable($method->name));
-            } else {
-                $this->assertTrue(Creator::isCallable($method->name));
-            }
+        foreach (array('callable', 'factories', 'reflectionMethods') as $propertyName) {
+            $property = $reflection->getProperty($propertyName);
+            $property->setAccessible(true);
+            $property->setValue(null);
         }
-
-        $paths = CFileHelper::findFiles(
-            YiiFactoryGirl\Factory::getBasePath(),
-            array('absolutePaths' => false)
-        );
-
-        foreach ($paths as $file) {
-            $factory = explode('.', $file)[0];
-            $this->assertTrue(Creator::isCallable($factory));
-        }
-
-        $this->assertFalse(Creator::isCallable('unknownMethod'));
-        $this->assertFalse(Creator::isCallable('notExistModelFactory'));
-        $this->assertTrue(Creator::isCallable('TestFactoryGirl__ARFactory'));
-        $this->assertFalse(Creator::isCallable('NotExistsFactory'));
+        $this->assertion($assert, $expected, $callback);
     }
 
     /**
      * @covers ::__callStatic
+     * @dataProvider emulatedMethodSuccess
      */
-    public function testEmulatedMethod()
+    public function testEmulatedMethodSuccess($assert, callable $callback, $expected = null)
     {
-        $this->assertTrue(Creator::HaveNoRelationFactory() instanceof HaveNoRelation);
-        $this->assertEquals('hoge', Creator::HaveNoRelationFactory(array('name' => 'hoge'))->name);
+        $this->assertion($assert, $expected, $callback);
     }
 
     /**
@@ -62,71 +47,11 @@ class CreatorTest extends YiiFactoryGirl_Unit_TestCase
      * @covers ::__callStatic
      * @covers ::createRelations
      * @covers ::createRelation
+     * @dataProvider relationSuccess
      */
-    public function testRelations()
+    public function testRelationsSuccess($assert, $result, $expected = null)
     {
-        // Not have relation
-        $this->assertNull(Creator::BookFactory()->Author);
-
-        // BELONGS_TO
-        $book1 = Creator::BookFactory(array('relations' => array(
-            array('Author', array('name' => 'Dazai Osamu')), // BelongsTo
-        )));
-        $this->assertInstanceOf('Author', $book1->Author);
-        $this->assertEquals('Dazai Osamu', $book1->Author->name);
-
-        // HAS_MANY
-        $author = Creator::AuthorFactory(array('name' => 'Fyodor Dostoevsky', 'relations' => array(
-            'Books' => array(
-                array('name' => 'Crime and Punishment'),
-                array('name' => 'Notes from Underground'),
-                array('id' => '45', 'name' => 'The Brothers Karamazov'),
-            )
-        )));
-        $this->assertCount(3, $author->Books);
-        $book2 = Book::model()->findByPk(45);
-        $this->assertEquals($author->id, $book2->Author_id);
-        $this->assertEquals('Fyodor Dostoevsky', $book2->Author->name);
-        $this->assertEquals('The Brothers Karamazov', $book2->name);
-
-        // HAS_ONE
-        $book3 = Creator::BookFactory(array('relations' => array(
-            'Colophon'
-        )));
-        $this->assertInstanceOf('Colophon', $book3->Colophon);
-
-        // recursive
-        $book4 = Creator::BookFactory(array('relations' => array(
-            'Colophon' => array('relations' => array('PublishedBy'))
-        )));
-        $this->assertEquals($book4->Colophon->Publisher_id, $book4->Colophon->PublishedBy->id);
-
-        // relation's alias
-        $author2 = Creator::AuthorFactory(array('relations' => array(
-            'Books.testAlias'
-        )));
-        $this->assertEquals('inserted by alias', $author2->Books[0]->name);
-
-        // abbreviated
-        $publisher = Creator::PublisherFactory(array(
-            'name' => 'O\'Reilly',
-            'Series' => array(
-                'name' => 'Hacks',
-                'Books' => array(
-                    array('name' => 'Raspberry Pi Hacks'),
-                    array('name' => 'HTML5 Hacks'),
-                )
-            )
-        ));
-        $this->assertInstanceOf('Series', $publisher->Series[0]);
-        $this->assertEquals('Hacks', $publisher->Series[0]->name);
-        $this->assertCount(2, $publisher->Series[0]->Books);
-        $bookNames = array();
-        foreach ($publisher->Series[0]->Books as $book) {
-            $bookNames[] = $book->name;
-        }
-        $this->assertContains('Raspberry Pi Hacks', $bookNames);
-        $this->assertContains('HTML5 Hacks', $bookNames);
+        $this->assertion($assert, $expected, $result);
     }
 
     /**
@@ -136,9 +61,13 @@ class CreatorTest extends YiiFactoryGirl_Unit_TestCase
      */
     public function testExceptionIfPrimaryKeyAndForeignKeyHasSameName()
     {
-        YiiFactoryGirl\Factory::getComponent()->prepare();
-        Creator::SameIdToAuthorFactory(array('id' => 10, 'relations' => array(
-            'Author' =>  array('id' => 20)
+        $component = YiiFactoryGirl\Factory::getComponent();
+        $component->checkIntegrity(false);
+        $component->resetTable('SameIdToAuthor');
+        $component->resetTable('Author');
+        $component->checkIntegrity(true);
+        Creator::SameIdToAuthorFactory(array('id' => 1, 'relations' => array(
+            'Author' =>  array('id' => 2)
         )));
     }
 
@@ -154,6 +83,203 @@ class CreatorTest extends YiiFactoryGirl_Unit_TestCase
         $method = new ReflectionMethod('YiiFactoryGirl\Creator::normalizeArguments');
         $method->setAccessible(true);
         $this->assertEquals($expected, $method->invoke(null, $model, array($args, $alias)));
+    }
+
+    /**
+     * isCallableSuccess
+     *
+     * @return array
+     */
+    public function isCallableSuccess()
+    {
+        $assert = function($assert, $name) {
+            return array(
+                'assert' => $assert,
+                'callback' => function() use($name) {
+                    return YiiFactoryGirl\Creator::isCallable($name);
+                }
+            );
+        };
+
+        $reflection = new ReflectionClass('YiiFactoryGirl\Creator');
+
+        $publicMethodsCallable = array_map(function($method) use ($assert) {
+            return $assert('True', $method->name);
+        }, $reflection->getMethods(ReflectionMethod::IS_PUBLIC));
+
+        $invisibleMethodsNotCallable = array_map(function($method) use ($assert) {
+            return $assert('False', $method->name);
+        }, $reflection->getMethods(ReflectionMethod::IS_PROTECTED | ReflectionMethod::IS_PRIVATE));
+
+        // TODO factory files is used in Builder::build method
+        // Is it OK to be callable in Creator::create?
+        $factoryMethodsCallable = array_map(function($factory) use ($assert) {
+            return $assert('True', explode('.', $factory)[0]);
+        }, YiiFactoryGirl\Factory::getFiles(false));
+
+        return array_merge(
+            $publicMethodsCallable,
+            $invisibleMethodsNotCallable,
+            $factoryMethodsCallable,
+            array(
+                $assert('False', 'unknownMethod'),
+                $assert('False', 'notExistModelFactory'),
+                $assert('True', 'TestFactoryGirl__ARFactory'),
+                $assert('False', 'NotExistFactory'),
+            )
+        );
+    }
+
+    /**
+     * emulatedMethodSuccess
+     *
+     * @return array
+     */
+    public function emulatedMethodSuccess()
+    {
+        return array(
+            array(
+                'assert' => 'InstanceOf',
+                'callback' => function() {
+                    return Creator::HaveNoRelationFactory();
+                },
+                'expected' => 'HaveNoRelation'
+            ),
+            array(
+                'assert' => 'Equals',
+                'callback' => function() {
+                    return Creator::HaveNoRelationFactory(array('name' => 'hoge'))->name;
+                },
+                'expected' => 'hoge'
+            ),
+        );
+    }
+
+    /**
+     * relationSuccess
+     *
+     * @return array
+     */
+    public function relationSuccess()
+    {
+        // HAS MANY
+        $hasManyBooksAuthor = Creator::AuthorFactory(array('name' => 'Fyodor Dostoevsky', 'relations' => array(
+            'Books' => array(
+                array('name' => 'Crime and Punishment'),
+                array('name' => 'Notes from Underground'),
+                array('id' => '45', 'name' => 'The Brothers Karamazov'),
+            )
+        )));
+        $bookId45 = Book::model()->findByPk(45);
+
+        // RECURSIVE
+        $recursive = Creator::BookFactory(array('relations' => array(
+            'Colophon' => array('relations' => array('PublishedBy'))
+        )));
+
+        // abbreviated
+        $publisher = Creator::PublisherFactory(array(
+            'name' => 'O\'Reilly',
+            'Series' => array(
+                'name' => 'Hacks',
+                'Books' => array(
+                    array('name' => 'Raspberry Pi Hacks'),
+                    array('name' => 'HTML5 Hacks'),
+                )
+            )
+        ));
+
+        return array(
+            'default have no relation' => array(
+                'assert' => 'Null',
+                'result' => function() {
+                    return Creator::BookFactory()->Author;
+                }
+            ),
+            'BELONGS TO: instanceof Author' => array(
+                'assert' => 'InstanceOf',
+                'result' => function() {
+                    return Creator::BookFactory(array('relations' => array(
+                        array('Author', array('name' => 'Dazai Osamu'))
+                    )))->Author;
+                },
+                'expected' => 'Author',
+            ),
+            'BELONGS TO: related record name is correct' => array(
+                'assert' => 'Equals',
+                'result' => function() {
+                    return Creator::BookFactory(array('relations' => array(
+                        array('Author', array('name' => 'Dazai Osamu'))
+                    )))->Author->name;
+                },
+                'expected' => 'Dazai Osamu',
+            ),
+            'HAS MANY: books count is correct' => array(
+                'assert' => 'Count',
+                'result' => $hasManyBooksAuthor->Books,
+                'expected' => 3
+            ),
+            'HAS MANY: author name is correct' => array(
+                'assert' => 'Equals',
+                'result' => $hasManyBooksAuthor->name,
+                'expected' => 'Fyodor Dostoevsky'
+            ),
+            'HAS MANY: book name is correct' => array(
+                'assert' => 'Equals',
+                'result' => $bookId45->name,
+                'expected' => 'The Brothers Karamazov'
+            ),
+            'HAS MANY: book\'s Author id is correct' => array(
+                'assert' => 'Equals',
+                'result' => $bookId45->Author_id,
+                'expected' => $hasManyBooksAuthor->id
+            ),
+            'HAS ONE' => array(
+                'assert' => 'InstanceOf',
+                'result' => function() {
+                    return Creator::BookFactory(array('relations' => array('Colophon')))->Colophon;
+                },
+                'expected' => 'Colophon'
+            ),
+            'RECURSIVE relation' => array(
+                'assert' => 'Equals',
+                'result' => $recursive->Colophon->Publisher_id,
+                'expected' => $recursive->Colophon->PublishedBy->id
+            ),
+            'Alias in relation' => array(
+                'assert' => 'Equals',
+                'result' => function() {
+                    return Creator::AuthorFactory(array('relations' => array(
+                        'Books.testAlias'
+                    )))->Books[0]->name;
+                },
+                'expected' => 'inserted by alias'
+            ),
+            'ABBREVIATED FORMAT: Instance type is correct' => array(
+                'assert' => 'InstanceOf',
+                'result' => $publisher->Series[0],
+                'expected' => 'Series'
+            ),
+            'ABBREVIATED FORMAT: series name is correct' => array(
+                'assert' => 'Equals',
+                'result' => $publisher->Series[0]->name,
+                'expected' => 'Hacks'
+            ),
+            'ABBREVIATED FORMAT: series books count is correct' => array(
+                'assert' => 'Count',
+                'result' => $publisher->Series[0]->Books,
+                'expected' => 2
+            ),
+            'ABBREVIATED FORMAT: series books name is correct' => array(
+                'assert' => 'Equals',
+                'result' => function() use ($publisher) {
+                    return array_map(function($book) {
+                        return $book->name;
+                    }, $publisher->Series[0]->Books);
+                },
+                'expected' => array('Raspberry Pi Hacks', 'HTML5 Hacks')
+            ),
+        );
     }
 
     /**
