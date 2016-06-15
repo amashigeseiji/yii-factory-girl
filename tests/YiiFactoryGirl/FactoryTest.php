@@ -56,7 +56,6 @@ class FactoryTest extends YiiFactoryGirl_Unit_TestCase
      */
     public function testGetDbConnectionFail($exception, callable $callback)
     {
-        $this->assertFail($exception, $callback);
     }
 
     /**
@@ -85,7 +84,6 @@ class FactoryTest extends YiiFactoryGirl_Unit_TestCase
      */
     public function testTruncateTableFailIfTableNotExists($exception, callable $callback)
     {
-        $this->assertFail($exception, $callback);
     }
 
     /**
@@ -94,7 +92,6 @@ class FactoryTest extends YiiFactoryGirl_Unit_TestCase
      */
     public function testBuildSuccess($assert, callable $callback, $expected = null)
     {
-        $this->assertion($assert, $expected, $callback);
     }
 
     /**
@@ -103,7 +100,6 @@ class FactoryTest extends YiiFactoryGirl_Unit_TestCase
      */
     public function testBuildFail($exception, callable $callback)
     {
-        $this->assertFail($exception, $callback);
     }
 
     /**
@@ -112,7 +108,6 @@ class FactoryTest extends YiiFactoryGirl_Unit_TestCase
      */
     public function testCreateSuccess($assert, callable $callback, $expected = null)
     {
-        $this->assertion($assert, $expected, $callback);
     }
 
     /**

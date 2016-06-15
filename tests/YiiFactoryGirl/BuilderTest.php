@@ -12,11 +12,10 @@ class BuilderTest extends YiiFactoryGirl_Unit_TestCase
 
     /**
      * @covers ::__construct
-     * @dataProvider constructProvider
+     * @dataProvider constructSuccess
      */
-    public function testConstruct($assert, callable $callback, $expected = null)
+    public function testConstructSuccess($assert, callable $callback, $expected = null)
     {
-        $this->assertion($assert, $callback, $expected);
     }
 
     /**
@@ -29,7 +28,6 @@ class BuilderTest extends YiiFactoryGirl_Unit_TestCase
      */
     public function testBuildSuccess($assert, callable $callback, $expected = null)
     {
-        $this->assertion($assert, $expected, $callback);
     }
 
     /**
@@ -38,7 +36,6 @@ class BuilderTest extends YiiFactoryGirl_Unit_TestCase
      */
     public function testBuildFail(array $exception, callable $callback)
     {
-        $this->assertFail($exception, $callback);
     }
 
     /**
@@ -47,7 +44,6 @@ class BuilderTest extends YiiFactoryGirl_Unit_TestCase
      */
     public function testCreateSuccess($assert, callable $callback, $expected = null)
     {
-        $this->assertion($assert, $expected, $callback);
     }
 
     /**
@@ -56,7 +52,6 @@ class BuilderTest extends YiiFactoryGirl_Unit_TestCase
      */
     public function testInstantiateSuccess($assert, callable $callback, $expected = null)
     {
-        $this->assertion($assert, $expected, $callback);
     }
 
     /**
@@ -65,19 +60,14 @@ class BuilderTest extends YiiFactoryGirl_Unit_TestCase
      */
     public function testInstantiateFail($exception, callable $callback)
     {
-        $this->assertFail($exception, $callback);
     }
 
     /**
      * @covers ::getFactoryData
      * @dataProvider getFactoryDataSuccess
      */
-    public function testGetFactoryDataSuccess($tests)
+    public function testGetFactoryDataSuccess()
     {
-        foreach ($tests as $test) {
-            extract($test);
-            $this->assertion($assert, $expected, $callback);
-        }
     }
 
     /**
@@ -86,15 +76,14 @@ class BuilderTest extends YiiFactoryGirl_Unit_TestCase
      */
     public function testGetTableNameSuccess($assert, callable $callback, $expected = null)
     {
-        $this->assertion($assert, $expected, $callback);
     }
 
     /**
-     * constructProvider
+     * constructSuccess
      *
      * @return array
      */
-    public function constructProvider()
+    public function constructSuccess()
     {
         return array(
             'class name is set' => array(
@@ -362,41 +351,33 @@ class BuilderTest extends YiiFactoryGirl_Unit_TestCase
     public function getFactoryDataSuccess()
     {
         return array(
-            'factoryFile' => array(
-                'tests' => array(
-                    array(
-                        'assert' => 'InstanceOf',
-                        'callback' => function() {
-                            return (new Builder('Book'))->getFactoryData();
-                        },
-                        'expected' => 'YiiFactoryGirl\FactoryData'
-                    ),
-                    array(
-                        'assert' => 'Equals',
-                        'callback' => function() {
-                            return (new Builder('Book'))->getFactoryData()->className;
-                        },
-                        'expected' => 'Book'
-                    )
-                )
+            'get FactoryData instance when factory file exists' => array(
+                'assert' => 'InstanceOf',
+                'callback' => function() {
+                    return (new Builder('Book'))->getFactoryData();
+                },
+                'expected' => 'YiiFactoryGirl\FactoryData'
             ),
-            'factoryFileNotExist' => array(
-                'tests' => array(
-                    array(
-                        'assert' => 'InstanceOf',
-                        'callback' => function() {
-                            return (new Builder('Colophon'))->getFactoryData();
-                        },
-                        'expected' => 'YiiFactoryGirl\FactoryData'
-                    ),
-                    array(
-                        'assert' => 'Equals',
-                        'callback' => function() {
-                            return (new Builder('Colophon'))->getFactoryData()->className;
-                        },
-                        'expected' => 'Colophon'
-                    )
-                )
+            'FactoryData instance is set className' => array(
+                'assert' => 'Equals',
+                'callback' => function() {
+                    return (new Builder('Book'))->getFactoryData()->className;
+                },
+                'expected' => 'Book'
+            ),
+            'get FactoryData instance when factory file not exist and model exist' => array(
+                'assert' => 'InstanceOf',
+                'callback' => function() {
+                    return (new Builder('Colophon'))->getFactoryData();
+                },
+                'expected' => 'YiiFactoryGirl\FactoryData'
+            ),
+            'FactoryData instance is set className even if factory file not exists' => array(
+                'assert' => 'Equals',
+                'callback' => function() {
+                    return (new Builder('Colophon'))->getFactoryData()->className;
+                },
+                'expected' => 'Colophon'
             )
         );
     }

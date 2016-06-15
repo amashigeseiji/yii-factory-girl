@@ -21,16 +21,14 @@ class CreatorTest extends YiiFactoryGirl_Unit_TestCase
             $property->setAccessible(true);
             $property->setValue(null);
         }
-        $this->assertion($assert, $expected, $callback);
     }
 
     /**
      * @covers ::__callStatic
      * @dataProvider emulatedMethodSuccess
      */
-    public function testEmulatedMethodSuccess($assert, callable $callback, $expected = null)
+    public function testEmulatedMethodSuccess()
     {
-        $this->assertion($assert, $expected, $callback);
     }
 
     /**
@@ -47,11 +45,10 @@ class CreatorTest extends YiiFactoryGirl_Unit_TestCase
      * @covers ::__callStatic
      * @covers ::createRelations
      * @covers ::createRelation
-     * @dataProvider relationSuccess
+     * @dataProvider relationsSuccess
      */
-    public function testRelationsSuccess($assert, $result, $expected = null)
+    public function testRelationsSuccess()
     {
-        $this->assertion($assert, $expected, $result);
     }
 
     /**
@@ -156,11 +153,11 @@ class CreatorTest extends YiiFactoryGirl_Unit_TestCase
     }
 
     /**
-     * relationSuccess
+     * relationsSuccess
      *
      * @return array
      */
-    public function relationSuccess()
+    public function relationsSuccess()
     {
         // HAS MANY
         $hasManyBooksAuthor = Creator::AuthorFactory(array('name' => 'Fyodor Dostoevsky', 'relations' => array(
