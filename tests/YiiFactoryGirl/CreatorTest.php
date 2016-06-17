@@ -5,7 +5,7 @@ use YiiFactoryGirl\Creator;
 /**
  * @coversDefaultClass YiiFactoryGirl\Creator
  */
-class CreatorTest extends YiiFactoryGirl_Unit_TestCase
+class CreatorTest extends YiiFactoryGirl\UnitTestCase
 {
     /**
      * @covers ::isCallable

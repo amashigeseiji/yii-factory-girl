@@ -6,7 +6,7 @@ use YiiFactoryGirl\Builder;
  *
  * @coversDefaultClass YiiFactoryGirl\Builder
  */
-class BuilderTest extends YiiFactoryGirl_Unit_TestCase
+class BuilderTest extends YiiFactoryGirl\UnitTestCase
 {
     protected $subject = 'YiiFactoryGirl\Builder';
 
@@ -236,19 +236,19 @@ class BuilderTest extends YiiFactoryGirl_Unit_TestCase
     {
         return array(
             'UnknownAttribute' => array(
-                'exception' => array('YiiFactoryGirl\FactoryException', '/Unknown attribute/'),
+                'exception' => array('YiiFactoryGirl\FactoryException', 'Unknown attribute'),
                 'callback' => function() {
                     (new Builder('Book'))->build(array('hoge' => 'fuga'));
                 }
             ),
             'AliasNotExist' => array(
-                'exception' => array('YiiFactoryGirl\FactoryException', '/Alias "aliasNotExist" not found for class "Book"/'),
+                'exception' => array('YiiFactoryGirl\FactoryException', 'Alias "aliasNotExist" not found for class "Book"'),
                 'callback' => function() {
                     (new Builder('Book'))->build(array(), 'aliasNotExist');
                 }
             ),
             'ClassNotExist' => array(
-                'exception' => array('YiiFactoryGirl\FactoryException', '/There is no/'),
+                'exception' => array('YiiFactoryGirl\FactoryException', 'There is no'),
                 'callback' => function() {
                     (new Builder('NotExistClass'))->build();
                 }
@@ -323,19 +323,19 @@ class BuilderTest extends YiiFactoryGirl_Unit_TestCase
     {
         return array(
             'notAllowed1' => array(
-                'exception' => array('YiiFactoryGirl\FactoryException', '/\CList is not \\\CActiveRecord./'),
+                'exception' => array('YiiFactoryGirl\FactoryException', '\CList is not \CActiveRecord.'),
                 'callback' => function() {
                     $this->invoke('instantiate', array('\CList'));
                 },
             ),
             'notAllowed2' => array(
-                'exception' => array('YiiFactoryGirl\FactoryException', '/Book is not CFormModel./'),
+                'exception' => array('YiiFactoryGirl\FactoryException', 'Book is not CFormModel.'),
                 'callback' => function() {
                     $this->invoke('instantiate', array('Book', 'CFormModel'));
                 },
             ),
             'notExist' => array(
-                'exception' => array('YiiFactoryGirl\FactoryException', '/There is no NotExistClass class loaded./'),
+                'exception' => array('YiiFactoryGirl\FactoryException', 'There is no NotExistClass class loaded.'),
                 'callback' => function() {
                     $this->invoke('instantiate', array('NotExistClass', 'CFormModel'));
                 },
@@ -411,5 +411,59 @@ class BuilderTest extends YiiFactoryGirl_Unit_TestCase
                 }
             )
         );
+    }
+
+
+    /* UTILITIES */
+
+    /**
+     * invoke
+     *
+     * @param string $method
+     * @param array $construct
+     * @param array $args
+     * @return mixed
+     */
+    protected function invoke($method, $construct = array(), $args = array())
+    {
+        $method = new \ReflectionMethod($this->subject, $method);
+        $method->setAccessible(true);
+
+        return $method->invokeArgs($this->subject($construct), $args);
+    }
+
+    /**
+     * getSubject
+     *
+     * @param mixed $construct
+     * @return object
+     */
+    protected function subject($construct = array())
+    {
+        if (!is_array($construct)) {
+            $construct = array($construct);
+        }
+        return (new \ReflectionClass($this->subject))
+            ->newInstanceArgs($construct);
+    }
+
+    /**
+     * getProperty
+     *
+     * @param mixed $instance
+     * @param mixed $get
+     * @return void
+     */
+    protected function getProperty($instance, $get)
+    {
+        $reflection = new \ReflectionObject($instance);
+        if ($reflection->hasProperty($get)) {
+            $property = $reflection->getProperty($get);
+            $property->setAccessible(true);
+            $result = $property->getValue($instance);
+        } else {
+            $result = $instance->$get;
+        }
+        return $result;
     }
 }

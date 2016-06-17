@@ -5,14 +5,14 @@ use YiiFactoryGirl\Factory;
 /**
  * @coversDefaultClass YiiFactoryGirl\Factory
  */
-class FactoryTest extends YiiFactoryGirl_Unit_TestCase
+class FactoryTest extends YiiFactoryGirl\UnitTestCase
 {
-    private $reflection = null;
+    private static $component = null;
 
     public function setUp()
     {
-        if ($this->getInstance()->connectionID !== 'db') {
-            $this->resetInstance();
+        if (self::$component && self::$component->connectionID !== 'db') {
+            $this->resetComponent();
         }
     }
 
@@ -37,8 +37,7 @@ class FactoryTest extends YiiFactoryGirl_Unit_TestCase
     {
         $this->invoke('create', 'Book');
         $this->assertGreaterThan(0, Book::model()->count());
-        $this->resetInstance();
-        $this->getInstance();
+        $this->getComponent(array(), true);
         $this->assertEquals(0, Book::model()->count());
     }
 
@@ -71,7 +70,7 @@ class FactoryTest extends YiiFactoryGirl_Unit_TestCase
             $this->invoke('create', $class);
         }
         $this->assertGreaterThan(0, Book::model()->count());
-        $this->getInstance()->prepare();
+        $this->getComponent()->prepare();
         $this->assertEquals(0, Book::model()->count());
         $this->assertEquals(0, Author::model()->count());
         $this->assertEquals(0, HaveNoRelation::model()->count());
@@ -137,15 +136,14 @@ class FactoryTest extends YiiFactoryGirl_Unit_TestCase
     {
         return array(
             array(
-                'exception' => array('CException', '/\\\YiiFactoryGirl\\\Factory.connectionID "migrate" is invalid/'),
+                'exception' => array('CException', '\YiiFactoryGirl\Factory.connectionID "migrate" is invalid'),
                 'callback'  => function() {
-                    $this->resetInstance();
-                    Yii::app()->setComponent('factorygirl', array('connectionID' => 'migrate'), true);
-                    $reflection = new ReflectionObject(Yii::app()->factorygirl);
+                    $component = $this->getComponent(array('connectionID' => 'migrate'), true);
+                    $reflection = new ReflectionObject($component);
                     $property = $reflection->getProperty('_db');
                     $property->setAccessible(true);
-                    $property->setValue(Yii::app()->factorygirl, null);
-                    Yii::app()->factorygirl->getDbConnection();
+                    $property->setValue($component, null);
+                    $component->getDbConnection();
                 }
             )
         );
@@ -155,7 +153,7 @@ class FactoryTest extends YiiFactoryGirl_Unit_TestCase
     {
         return array(
             array(
-                'exception' => array('CException', "/Table 'NotExist' does not exist/"),
+                'exception' => array('CException', "Table 'NotExist' does not exist"),
                 'callback' => function() {
                     $this->invoke('truncateTable', 'NotExist');
                 }
@@ -194,13 +192,13 @@ class FactoryTest extends YiiFactoryGirl_Unit_TestCase
     {
         return array(
             array(
-                'exception' => array('YiiFactoryGirl\FactoryException', '/Unknown attribute/'),
+                'exception' => array('YiiFactoryGirl\FactoryException', 'Unknown attribute'),
                 'callback'  => function() {
                     $this->invoke('build', 'HaveNoRelation', array('hoge' => 'hoge'));
                 }
             ),
             array(
-                'exception' => array('YiiFactoryGirl\FactoryException', '/There is no/'),
+                'exception' => array('YiiFactoryGirl\FactoryException', 'There is no'),
                 'callback'  => function() {
                     $this->invoke('build', 'FailClass');
                 }
@@ -253,28 +251,13 @@ class FactoryTest extends YiiFactoryGirl_Unit_TestCase
     }
 
     /**
-     * getInstance
-     *
-     * @param array $params initialize parameter
-     * @return YiiFactoryGirl\Factory
-     */
-    private function getInstance()
-    {
-        if (!Yii::app()->hasComponent('factorygirl')) {
-            Yii::app()->setComponent('factorygirl', array('class' => 'YiiFactoryGirl\Factory'));
-        }
-        return Yii::app()->factorygirl;
-    }
-
-    /**
-     * resetInstance
+     * resetComponent
      *
      * @return void
      */
-    private function resetInstance()
+    private function resetComponent()
     {
-        Yii::app()->setComponent('factorygirl', null);
-        Yii::app()->setComponent('factorygirl', array('class' => 'YiiFactoryGirl\Factory', 'connectionID' => 'db'));
+        self::$component = null;
     }
 
     /**
@@ -285,13 +268,34 @@ class FactoryTest extends YiiFactoryGirl_Unit_TestCase
      */
     protected function invoke($name)
     {
-        if (!$this->reflection) {
-            $this->reflection = new ReflectionObject($this->getInstance());
-        }
-        $method = $this->reflection->getMethod($name);
+        $reflection = new ReflectionClass('\YiiFactoryGirl\Factory');
+        $method = $reflection->getMethod($name);
         $method->setAccessible(true);
         $args = func_get_args();
         array_shift($args);
-        return $method->invokeArgs($this->getInstance(), $args);
+        return $method->invokeArgs($this->getComponent(), $args);
+    }
+
+    /**
+     * getComponent
+     *
+     * @param array $config
+     * @return void
+     */
+    private function getComponent($config = array(), $create = false)
+    {
+        if (!self::$component || $create) {
+            $component = Yii::createComponent(array_merge(
+                array(
+                    'class' => '\YiiFactoryGirl\Factory',
+                    'connectionID' => 'db'
+                ),
+                $config
+            ));
+            $component->init();
+            return self::$component = $component;
+        }
+
+        return self::$component;
     }
 }

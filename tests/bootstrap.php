@@ -6,7 +6,6 @@ $path = function() {
 
 require_once($path('vendor', 'autoload.php'));
 require_once($path('vendor', 'yiisoft', 'yii', 'framework', 'yiit.php'));
-require_once($path('tests', 'lib', 'YiiFactoryGirl_Unit_TestCase.php'));
 
 Yii::createWebApplication(array(
     'basePath'  => $path('tests', 'mock'),
@@ -28,4 +27,4 @@ Yii::createWebApplication(array(
         )
     ),
 ));
-Yii::app()->migrate->up();
+//Yii::app()->migrate->up();

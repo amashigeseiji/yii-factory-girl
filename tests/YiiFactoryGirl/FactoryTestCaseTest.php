@@ -64,6 +64,7 @@ class FactoryTestCaseTest extends FactoryTestCase
 
     /**
      * @covers ::__get
+     * FIXME if define factoryTestCaseSuccess method as dataProvider, testsuite will fail!!
      */
     public function testFactoryTestCase()
     {
@@ -76,22 +77,10 @@ class FactoryTestCaseTest extends FactoryTestCase
 
     /**
      * @covers ::__get
-     * @expectedException YiiFactoryGirl\FactoryException
-     * @expectedExceptionMessage $factories[invalidDefinition] is invalid definition.
+     * @dataProvider getFail
      */
-    public function testExceptionIfInvalidDefinition()
+    public function testGetFail()
     {
-        $this->invalidDefinition;
-    }
-
-    /**
-     * @covers ::__get
-     * @expectedException YiiFactoryGirl\FactoryException
-     * @expectedExceptionMessage Unknown property
-     */
-    public function testExceptionIfUnknownProperty()
-    {
-        $this->unknown;
     }
 
     /**
@@ -194,5 +183,52 @@ class FactoryTestCaseTest extends FactoryTestCase
                 $this->fail('invalid series name');
             }
         }
+    }
+
+    public function factoryTestCaseSuccess()
+    {
+        //FIXME if define this method as dataProvider, testsuite will fail!!
+        return array(
+            'noRelation1 is exists' => array(
+                'assert' => 'NotNull',
+                'result' => function() {
+                    return HaveNoRelation::model()->findByPk($this->noRelation1->id);
+                },
+            ),
+            'noRelation2 is exists' => array(
+                'assert' => 'NotNull',
+                'result' => function() {
+                    return HaveNoRelation::model()->findByPk($this->noRelation2->id);
+                },
+            ),
+            'noRelation2\'s name is hoge' => array(
+                'assert' => 'Equals',
+                'result' => $this->noRelation2->name,
+                'expect' => 'hoge'
+            ),
+            'ActiveRecord cache in FactoryTestCase::$repository' => array(
+                'assert' => 'Same',
+                'result' => $this->noRelation1->id,
+                'expect' => $this->noRelation1->id
+            ),
+        );
+    }
+
+    public function getFail()
+    {
+        return array(
+            'definition is invalid' => array(
+                'expection' => array('YiiFactoryGirl\FactoryException', '$factories[invalidDefinition] is invalid definition.'),
+                'callback' => function() {
+                    $this->invalidDefinition;
+                }
+            ),
+            'unknown property' => array(
+                'expection' => array('YiiFactoryGirl\FactoryException', 'Unknown property'),
+                'callback' => function() {
+                    $this->unknown;
+                }
+            )
+        );
     }
 }

@@ -41,7 +41,7 @@
 
 namespace YiiFactoryGirl;
 
-abstract class FactoryTestCase extends \CTestCase
+abstract class FactoryTestCase extends UnitTestCase
 {
     /**
      * @var $factories

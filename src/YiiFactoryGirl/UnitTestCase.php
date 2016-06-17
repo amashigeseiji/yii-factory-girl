@@ -1,64 +1,15 @@
 <?php
+
+namespace YiiFactoryGirl;
+
 /**
- * YiiFactoryGirl_Unit_TestCase
+ * YiiFactoryGirl\UnitTestCase
  *
- * @see PHPUnit_Framework_TestCase
+ * @see \CTestCase
+ * @see \PHPUnit_Framework_TestCase
  */
-class YiiFactoryGirl_Unit_TestCase extends PHPUnit_Framework_TestCase
+abstract class UnitTestCase extends \CTestCase
 {
-    protected $subject = '';
-
-    /**
-     * invoke
-     *
-     * @param string $method
-     * @param array $construct
-     * @param array $args
-     * @return mixed
-     */
-    protected function invoke($method, $construct = array(), $args = array())
-    {
-        $method = new ReflectionMethod($this->subject, $method);
-        $method->setAccessible(true);
-
-        return $method->invokeArgs($this->subject($construct), $args);
-    }
-
-    /**
-     * getSubject
-     *
-     * @param mixed $construct
-     * @return object
-     */
-    protected function subject($construct = array())
-    {
-        if (!is_array($construct)) {
-            $construct = array($construct);
-        }
-        return (new ReflectionClass($this->subject))
-            ->newInstanceArgs($construct);
-    }
-
-    /**
-     * getProperty
-     *
-     * @param mixed $instance
-     * @param mixed $get
-     * @return void
-     */
-    protected function getProperty($instance, $get)
-    {
-        $reflection = new ReflectionObject($instance);
-        if ($reflection->hasProperty($get)) {
-            $property = $reflection->getProperty($get);
-            $property->setAccessible(true);
-            $result = $property->getValue($instance);
-        } else {
-            $result = $instance->$get;
-        }
-        return $result;
-    }
-
     /**
      * assertSuccess
      *
@@ -69,11 +20,11 @@ class YiiFactoryGirl_Unit_TestCase extends PHPUnit_Framework_TestCase
      */
     protected function assertSuccess($assertion, $result, $expected = null)
     {
-        $method = new ReflectionMethod($this, 'assert'.$assertion);
-        if (is_object($result) && $result instanceof Closure) {
+        $method = new \ReflectionMethod($this, 'assert'.$assertion);
+        if (is_object($result) && $result instanceof \Closure) {
             $result = $result();
         }
-        if (is_object($expected) && $expected instanceof Closure) {
+        if (is_object($expected) && $expected instanceof \Closure) {
             $expected = $expected($result);
         }
         return $method->getNumberOfParameters() > 2 ?
@@ -93,10 +44,18 @@ class YiiFactoryGirl_Unit_TestCase extends PHPUnit_Framework_TestCase
         try {
             $callback();
             $this->fail('Unexpected build success');
-        } catch(Exception $e) {
+        } catch(\Exception $e) {
             if ($e instanceof $exceptionType) {
-                $exceptionMessage ?
-                    $this->assertRegExp($exceptionMessage, $e->getMessage()) : $this->assertInstanceOf($exceptionType, $e);
+                $this->assertThat(
+                    $e,
+                    new \PHPUnit_Framework_Constraint_Exception($exceptionType)
+                );
+                if ($exceptionMessage) {
+                    $this->assertThat(
+                        $e,
+                        new \PHPUnit_Framework_Constraint_ExceptionMessage($exceptionMessage)
+                    );
+                }
             } else {
                 throw $e;
             }
@@ -106,13 +65,17 @@ class YiiFactoryGirl_Unit_TestCase extends PHPUnit_Framework_TestCase
     /**
      * Override to run the test and assert its state.
      *
+     * If test name **Success or **Fail, call
+     * assertSuccess/assertFail automatically.
+     *
      * @return mixed
      * @throws PHPUnit_Framework_Exception
+     * @see \PHPUnit_Framework_TestCase::runTest
      */
     protected function runTest()
     {
         try {
-            $parent  = new ReflectionClass('PHPUnit_Framework_TestCase');
+            $parent  = new \ReflectionClass('PHPUnit_Framework_TestCase');
 
             $privates = array('name', 'data', 'dependencyInput', 'expectedException', 'expectedExceptionMessage', 'expectedExceptionCode');
             $set = array();
@@ -122,16 +85,16 @@ class YiiFactoryGirl_Unit_TestCase extends PHPUnit_Framework_TestCase
                 $set[$propertyName] = $property->getValue($this);
             }
 
-            $class  = new ReflectionClass($this);
+            $class  = new \ReflectionClass($this);
             $method = $class->getMethod($set['name']);
         }
 
-        catch (ReflectionException $e) {
+        catch (\ReflectionException $e) {
             $this->fail($e->getMessage());
         }
 
         if ($set['name'] === NULL) {
-            throw new PHPUnit_Framework_Exception(
+            throw new \PHPUnit_Framework_Exception(
               'PHPUnit_Framework_TestCase::$name must not be NULL.'
             );
         }
@@ -148,20 +111,20 @@ class YiiFactoryGirl_Unit_TestCase extends PHPUnit_Framework_TestCase
             }
         }
 
-        catch (Exception $e) {
+        catch (\Exception $e) {
             $checkException = FALSE;
 
             if (is_string($set['expectedException'])) {
                 $checkException = TRUE;
 
-                if ($e instanceof PHPUnit_Framework_Exception) {
+                if ($e instanceof \PHPUnit_Framework_Exception) {
                     $checkException = FALSE;
                 }
 
-                $reflector = new ReflectionClass($set['expectedException']);
+                $reflector = new \ReflectionClass($set['expectedException']);
 
                 if ($set['expectedException'] == 'PHPUnit_Framework_Exception' ||
-                    $reflector->isSubclassOf('PHPUnit_Framework_Exception')) {
+                    $reflector->isSubclassOf('\PHPUnit_Framework_Exception')) {
                     $checkException = TRUE;
                 }
             }
@@ -169,7 +132,7 @@ class YiiFactoryGirl_Unit_TestCase extends PHPUnit_Framework_TestCase
             if ($checkException) {
                 $this->assertThat(
                   $e,
-                  new PHPUnit_Framework_Constraint_Exception(
+                  new \PHPUnit_Framework_Constraint_Exception(
                     $set['expectedException']
                   )
                 );
@@ -178,7 +141,7 @@ class YiiFactoryGirl_Unit_TestCase extends PHPUnit_Framework_TestCase
                     !empty($set['expectedExceptionMessage'])) {
                     $this->assertThat(
                       $e,
-                      new PHPUnit_Framework_Constraint_ExceptionMessage(
+                      new \PHPUnit_Framework_Constraint_ExceptionMessage(
                         $set['expectedExceptionMessage']
                       )
                     );
@@ -187,7 +150,7 @@ class YiiFactoryGirl_Unit_TestCase extends PHPUnit_Framework_TestCase
                 if ($set['expectedExceptionCode'] !== NULL) {
                     $this->assertThat(
                       $e,
-                      new PHPUnit_Framework_Constraint_ExceptionCode(
+                      new \PHPUnit_Framework_Constraint_ExceptionCode(
                         $set['expectedExceptionCode']
                       )
                     );
@@ -202,7 +165,7 @@ class YiiFactoryGirl_Unit_TestCase extends PHPUnit_Framework_TestCase
         if ($set['expectedException'] !== NULL) {
             $this->assertThat(
               NULL,
-              new PHPUnit_Framework_Constraint_Exception(
+              new \PHPUnit_Framework_Constraint_Exception(
                 $set['expectedException']
               )
             );
