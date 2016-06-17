@@ -94,7 +94,7 @@ abstract class FactoryTestCase extends UnitTestCase
                 } else {
                     throw new FactoryException('$factories[' . $name . '] is invalid definition.');
                 }
-                $method = $class . Creator::FACTORY_METHOD_SUFFIX;
+                $method = $class . Builder::FACTORY_METHOD_SUFFIX;
                 $this->repository[$name] = call_user_func_array(array($this, $method), $args);
             }
 
@@ -114,8 +114,8 @@ abstract class FactoryTestCase extends UnitTestCase
      */
     public function __call($name, $args)
     {
-        if (Creator::isCallable($name)) {
-            return call_user_func_array(array('YiiFactoryGirl\Creator', $name), $args);
+        if (Builder::isCallable($name)) {
+            return call_user_func_array(array('YiiFactoryGirl\Builder', $name), $args);
         }
 
         throw new FactoryException('Call to undefined method ' . get_class($this) . "::{$name}().");

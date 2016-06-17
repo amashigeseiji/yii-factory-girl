@@ -79,6 +79,53 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
+     * @covers ::isCallable
+     * @covers ::setFactories
+     * @covers ::setReflectionMethods
+     * @dataProvider isCallableSuccess
+     */
+    public function testIsCallableSuccess()
+    {
+        $reflection = new ReflectionClass('YiiFactoryGirl\Builder');
+        foreach (array('callable', 'factories', 'reflectionMethods') as $propertyName) {
+            $property = $reflection->getProperty($propertyName);
+            $property->setAccessible(true);
+            $property->setValue(null);
+        }
+    }
+
+    /**
+     * @covers ::__callStatic
+     * @dataProvider emulatedMethodSuccess
+     */
+    public function testEmulatedMethodSuccess()
+    {
+    }
+
+    /**
+     * @covers ::__callStatic
+     * @expectedException YiiFactoryGirl\FactoryException
+     */
+    public function testNotCallable()
+    {
+        Builder::HogeFugaFactory();
+    }
+
+    /**
+     * testNormalizeArguments
+     *
+     * @covers ::normalizeArguments
+     * @covers ::parseRelationArguments
+     * @dataProvider arguments
+     */
+    public function testNormalizeArguments($expected, $model, $args = array(), $alias = null)
+    {
+        $method = new ReflectionMethod('YiiFactoryGirl\Builder::normalizeArguments');
+        $method->setAccessible(true);
+        $this->assertEquals($expected, $method->invoke(null, $model, array($args, $alias)));
+    }
+
+    /**
      * constructSuccess
      *
      * @return array
@@ -413,6 +460,171 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
         );
     }
 
+    /**
+     * isCallableSuccess
+     *
+     * @return array
+     */
+    public function isCallableSuccess()
+    {
+        $assert = function($assert, $name) {
+            return array(
+                'assert' => $assert,
+                'callback' => function() use($name) {
+                    return YiiFactoryGirl\Builder::isCallable($name);
+                }
+            );
+        };
+
+        $reflection = new ReflectionClass('YiiFactoryGirl\Builder');
+
+        $publicMethodsCallable = array_map(function($method) use ($assert) {
+            return $assert('True', $method->name);
+        }, $reflection->getMethods(ReflectionMethod::IS_PUBLIC));
+
+        $invisibleMethodsNotCallable = array_map(function($method) use ($assert) {
+            return $assert('False', $method->name);
+        }, $reflection->getMethods(ReflectionMethod::IS_PROTECTED | ReflectionMethod::IS_PRIVATE));
+
+        // TODO factory files is used in Builder::build method
+        // Is it OK to be callable in Creator::create?
+        $factoryMethodsCallable = array_map(function($factory) use ($assert) {
+            return $assert('True', explode('.', $factory)[0]);
+        }, YiiFactoryGirl\Factory::getFiles(false));
+
+        return array_merge(
+            $publicMethodsCallable,
+            $invisibleMethodsNotCallable,
+            $factoryMethodsCallable,
+            array(
+                $assert('False', 'unknownMethod'),
+                $assert('False', 'notExistModelFactory'),
+                $assert('True', 'TestFactoryGirl__ARFactory'),
+                $assert('False', 'NotExistFactory'),
+            )
+        );
+    }
+
+    /**
+     * emulatedMethodSuccess
+     *
+     * @return array
+     */
+    public function emulatedMethodSuccess()
+    {
+        return array(
+            array(
+                'assert' => 'InstanceOf',
+                'callback' => function() {
+                    return Builder::HaveNoRelationFactory();
+                },
+                'expected' => 'HaveNoRelation'
+            ),
+            array(
+                'assert' => 'Equals',
+                'callback' => function() {
+                    return Builder::HaveNoRelationFactory(array('name' => 'hoge'))->name;
+                },
+                'expected' => 'hoge'
+            ),
+        );
+    }
+
+    /**
+     * dataProvider for testNormalizeArguments
+     *
+     * @return array
+     */
+    public function arguments()
+    {
+        return array(
+            'noArguments' => array(
+                array('args' => array('User', array(), null), 'relations' => array()),
+                'User'
+            ),
+
+            'withArgumentsAndAlias' => array(
+                array('args' => array('User', array('id' => 1), 'hoge'), 'relations' => array()),
+                'User', array('id' => 1), 'hoge'
+            ),
+
+            'withRelation' => array(
+                array(
+                    'args'      => array('User', array('name' => 'hoge'), 'UserAlias'),
+                    'relations' => array(
+                        array('Identity', array('test' => 'hoge'), 'alias'),
+                        array('Hoge', array(), null),
+                    )
+                ),
+                'User',
+                array('name' => 'hoge', 'relations' => array(
+                    array('Identity', array('test' => 'hoge'), 'alias'),
+                    array('Hoge'),
+                )),
+                'UserAlias'
+            ),
+
+            'withRelatin2' => array(
+                array(
+                    'args'      => array('User', array('name' => 'hoge', 'fuga' => 'tetete'), 'userAlias'),
+                    'relations' => array(
+                        array('Identity', array('test' => 'hoge'), null),
+                        array('Hoge', array(), 'HogeAlias'),
+                        array('Fuga', array(), null)
+                    )
+                ),
+                'User',
+                array('name' => 'hoge', 'fuga' => 'tetete', 'relations' => array(
+                        'Identity' => array('test' => 'hoge'),
+                        'Hoge' => 'HogeAlias',
+                        'Fuga',
+                    )
+                ),
+                'userAlias'
+            ),
+
+            'HAS_MANY' => array(
+                array(
+                    'args' => array('User', array(), 'alias'),
+                    'relations' => array(
+                        array('Hoge', array('id' => 1), null),
+                        array('Hoge', array('id' => 2), null),
+                    )
+                ),
+                'User',
+                array('relations' => array(
+                    // This format is to be interpreted as HAS_MANY relation.
+                    'Hoge' => array(
+                        array('id' => 1),
+                        array('id' => 2),
+                    ))
+                ),
+                'alias'
+            ),
+
+            'ModelNameAlias' => array(
+                array(
+                    'args'      => array('User', array(), null),
+                    'relations' => array(
+                        array('Hoge', array(), 'relationAlias'),
+                        array('Fuga', array('id' => 2), 'alias')
+                    )
+                ),
+                'User',
+                array('relations' => array(
+                    'Hoge.relationAlias',
+                    'Fuga.alias' => array('id' => 2)
+                )),
+            ),
+
+            'abbreviate' => array(
+                array('args'      => array('Book', array(), null),
+                      'relations' => array(array('Author', array(), null))),
+                'Book', array('Author' => array())
+            )
+        );
+    }
+
 
     /* UTILITIES */
 
@@ -467,3 +679,8 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
         return $result;
     }
 }
+
+/**
+ * Mock
+ */
+class TestFactoryGirl__AR extends CActiveRecord {}
