@@ -1,7 +1,7 @@
 <?php
 
 use YiiFactoryGirl\Creator;
-use YiiFactoryGirl\Builder;
+use YiiFactoryGirl\Factory;
 
 /**
  * @coversDefaultClass YiiFactoryGirl\Creator
@@ -30,7 +30,7 @@ class CreatorTest extends YiiFactoryGirl\UnitTestCase
         $component->resetTable('SameIdToAuthor');
         $component->resetTable('Author');
         $component->checkIntegrity(true);
-        Builder::SameIdToAuthorFactory(array('id' => 1, 'relations' => array(
+        Factory::getComponent()->SameIdToAuthorFactory(array('id' => 1, 'relations' => array(
             'Author' =>  array('id' => 2)
         )), null, true);
     }
@@ -43,22 +43,22 @@ class CreatorTest extends YiiFactoryGirl\UnitTestCase
     public function relationsSuccess()
     {
         // HAS MANY
-        $hasManyBooksAuthor = Builder::AuthorFactory(array('name' => 'Fyodor Dostoevsky', 'relations' => array(
+        $hasManyBooksAuthor = Factory::getComponent()->AuthorFactory(array('name' => 'Fyodor Dostoevsky', 'relations' => array(
             'Books' => array(
                 array('name' => 'Crime and Punishment'),
                 array('name' => 'Notes from Underground'),
                 array('id' => '45', 'name' => 'The Brothers Karamazov'),
             )
-        )), null, true);
+        )));
         $bookId45 = Book::model()->findByPk(45);
 
         // RECURSIVE
-        $recursive = Builder::BookFactory(array('relations' => array(
+        $recursive = Factory::getComponent()->BookFactory(array('relations' => array(
             'Colophon' => array('relations' => array('PublishedBy'))
-        )), null, true);
+        )));
 
         // abbreviated
-        $publisher = Builder::PublisherFactory(array(
+        $publisher = Factory::getComponent()->PublisherFactory(array(
             'name' => 'O\'Reilly',
             'Series' => array(
                 'name' => 'Hacks',
@@ -67,30 +67,30 @@ class CreatorTest extends YiiFactoryGirl\UnitTestCase
                     array('name' => 'HTML5 Hacks'),
                 )
             )
-        ), null, true);
+        ));
 
         return array(
             'default have no relation' => array(
                 'assert' => 'Null',
                 'result' => function() {
-                    return Builder::BookFactory(array(), null, true)->Author;
+                    return Factory::getComponent()->BookFactory()->Author;
                 }
             ),
             'BELONGS TO: instanceof Author' => array(
                 'assert' => 'InstanceOf',
                 'result' => function() {
-                    return Builder::BookFactory(array('relations' => array(
+                    return Factory::getComponent()->BookFactory(array('relations' => array(
                         array('Author', array('name' => 'Dazai Osamu'))
-                    )), null, true)->Author;
+                    )))->Author;
                 },
                 'expected' => 'Author',
             ),
             'BELONGS TO: related record name is correct' => array(
                 'assert' => 'Equals',
                 'result' => function() {
-                    return Builder::BookFactory(array('relations' => array(
+                    return Factory::getComponent()->BookFactory(array('relations' => array(
                         array('Author', array('name' => 'Dazai Osamu'))
-                    )), null, true)->Author->name;
+                    )))->Author->name;
                 },
                 'expected' => 'Dazai Osamu',
             ),
@@ -117,7 +117,7 @@ class CreatorTest extends YiiFactoryGirl\UnitTestCase
             'HAS ONE' => array(
                 'assert' => 'InstanceOf',
                 'result' => function() {
-                    return Builder::BookFactory(array('relations' => array('Colophon')), null, true)->Colophon;
+                    return Factory::getComponent()->BookFactory(array('relations' => array('Colophon')))->Colophon;
                 },
                 'expected' => 'Colophon'
             ),
@@ -129,7 +129,7 @@ class CreatorTest extends YiiFactoryGirl\UnitTestCase
             'Alias in relation' => array(
                 'assert' => 'Equals',
                 'result' => function() {
-                    return Builder::AuthorFactory(array('relations' => array(
+                    return Factory::getComponent()->AuthorFactory(array('relations' => array(
                         'Books.testAlias'
                     )), null, true)->Books[0]->name;
                 },

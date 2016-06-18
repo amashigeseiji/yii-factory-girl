@@ -132,6 +132,36 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
         $this->assertEquals(0, Author::model()->count());
     }
 
+    /**
+     * @covers ::isFactoryMethod
+     * @covers ::setFactoryMethods
+     * @dataProvider isFactoryMethodSuccess
+     */
+    public function testIsFactoryMethodSuccess()
+    {
+        $reflection = new ReflectionClass('YiiFactoryGirl\Factory');
+        $property = $reflection->getProperty('_factoryMethods');
+        $property->setAccessible(true);
+        $property->setValue(null);
+    }
+
+    /**
+     * @covers ::__call
+     * @dataProvider emulatedMethodSuccess
+     */
+    public function testEmulatedMethodSuccess()
+    {
+    }
+
+    /**
+     * @covers ::__call
+     * @expectedException CException
+     */
+    public function testNotCallable()
+    {
+        Factory::getComponent()->HogeFugaFactory();
+    }
+
     public function getDbConnectionFail()
     {
         return array(
@@ -251,6 +281,63 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
+     * isFactoryMethodSuccess
+     *
+     * @return array
+     */
+    public function isFactoryMethodSuccess()
+    {
+        $assert = function($assert, $name) {
+            return array(
+                'assert' => $assert,
+                'callback' => function() use($name) {
+                    return YiiFactoryGirl\Factory::isFactoryMethod($name);
+                }
+            );
+        };
+
+        $factoryMethodsCallable = array_map(function($factory) use ($assert) {
+            return $assert('True', explode('.', $factory)[0]);
+        }, YiiFactoryGirl\Factory::getFiles(false));
+
+        return array_merge(
+            $factoryMethodsCallable,
+            array(
+                $assert('False', 'unknownMethod'),
+                $assert('False', 'notExistModelFactory'),
+                $assert('True', 'TestFactoryGirl__ARFactory'),
+                $assert('False', 'NotExistFactory'),
+            )
+        );
+    }
+
+    /**
+     * emulatedMethodSuccess
+     *
+     * @return array
+     */
+    public function emulatedMethodSuccess()
+    {
+        return array(
+            array(
+                'assert' => 'InstanceOf',
+                'callback' => function() {
+                    return Factory::getComponent()->HaveNoRelationFactory();
+                },
+                'expected' => 'HaveNoRelation'
+            ),
+            array(
+                'assert' => 'Equals',
+                'callback' => function() {
+                    return Factory::getComponent()->HaveNoRelationFactory(array('name' => 'hoge'))->name;
+                },
+                'expected' => 'hoge'
+            ),
+        );
+    }
+
+
+    /**
      * resetComponent
      *
      * @return void
@@ -299,3 +386,8 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
         return self::$component;
     }
 }
+
+/**
+ * Mock
+ */
+class TestFactoryGirl__AR extends CActiveRecord {}

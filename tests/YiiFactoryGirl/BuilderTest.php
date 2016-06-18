@@ -78,38 +78,6 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
     {
     }
 
-    /**
-     * @covers ::isCallable
-     * @covers ::setFactories
-     * @covers ::setSelfMethods
-     * @dataProvider isCallableSuccess
-     */
-    public function testIsCallableSuccess()
-    {
-        $reflection = new ReflectionClass('YiiFactoryGirl\Builder');
-        foreach (array('callable', 'factories', 'selfMethods') as $propertyName) {
-            $property = $reflection->getProperty($propertyName);
-            $property->setAccessible(true);
-            $property->setValue(null);
-        }
-    }
-
-    /**
-     * @covers ::__callStatic
-     * @dataProvider emulatedMethodSuccess
-     */
-    public function testEmulatedMethodSuccess()
-    {
-    }
-
-    /**
-     * @covers ::__callStatic
-     * @expectedException YiiFactoryGirl\FactoryException
-     */
-    public function testNotCallable()
-    {
-        Builder::HogeFugaFactory();
-    }
 
     /**
      * testNormalizeArguments
@@ -435,76 +403,6 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * isCallableSuccess
-     *
-     * @return array
-     */
-    public function isCallableSuccess()
-    {
-        $assert = function($assert, $name) {
-            return array(
-                'assert' => $assert,
-                'callback' => function() use($name) {
-                    return YiiFactoryGirl\Builder::isCallable($name);
-                }
-            );
-        };
-
-        $reflection = new ReflectionClass('YiiFactoryGirl\Builder');
-
-        $publicMethodsCallable = array_map(function($method) use ($assert) {
-            return $assert('True', $method->name);
-        }, $reflection->getMethods(ReflectionMethod::IS_PUBLIC));
-
-        $invisibleMethodsNotCallable = array_map(function($method) use ($assert) {
-            return $assert('False', $method->name);
-        }, $reflection->getMethods(ReflectionMethod::IS_PROTECTED | ReflectionMethod::IS_PRIVATE));
-
-        // TODO factory files is used in Builder::build method
-        // Is it OK to be callable in Creator::create?
-        $factoryMethodsCallable = array_map(function($factory) use ($assert) {
-            return $assert('True', explode('.', $factory)[0]);
-        }, YiiFactoryGirl\Factory::getFiles(false));
-
-        return array_merge(
-            $publicMethodsCallable,
-            $invisibleMethodsNotCallable,
-            $factoryMethodsCallable,
-            array(
-                $assert('False', 'unknownMethod'),
-                $assert('False', 'notExistModelFactory'),
-                $assert('True', 'TestFactoryGirl__ARFactory'),
-                $assert('False', 'NotExistFactory'),
-            )
-        );
-    }
-
-    /**
-     * emulatedMethodSuccess
-     *
-     * @return array
-     */
-    public function emulatedMethodSuccess()
-    {
-        return array(
-            array(
-                'assert' => 'InstanceOf',
-                'callback' => function() {
-                    return Builder::HaveNoRelationFactory();
-                },
-                'expected' => 'HaveNoRelation'
-            ),
-            array(
-                'assert' => 'Equals',
-                'callback' => function() {
-                    return Builder::HaveNoRelationFactory(array('name' => 'hoge'))->name;
-                },
-                'expected' => 'hoge'
-            ),
-        );
-    }
-
-    /**
      * dataProvider for testNormalizeArguments
      *
      * @return array
@@ -653,8 +551,3 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
         return $result;
     }
 }
-
-/**
- * Mock
- */
-class TestFactoryGirl__AR extends CActiveRecord {}
