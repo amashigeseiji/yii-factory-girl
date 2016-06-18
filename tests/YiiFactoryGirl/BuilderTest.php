@@ -140,24 +140,10 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
                 },
                 'expected' => 'Book',
             ),
-            'CActiveRecord is default' => array(
-                'assert' => 'Equals',
+            'FormModel class is allowed' => array(
+                'assert' => 'InstanceOf',
                 'callback' => function() {
-                    return $this->getProperty($this->subject(array('Book')), 'allowed');
-                },
-                'expected' => '\CActiveRecord',
-            ),
-            'BookForm class' => array(
-                'assert' => 'Equals',
-                'callback' => function() {
-                    return $this->getProperty($this->subject(array('BookForm', 'CFormModel')), 'class');
-                },
-                'expected' => 'BookForm',
-            ),
-            'CFormModel is allowed' => array(
-                'assert' => 'Equals',
-                'callback' => function() {
-                    return $this->getProperty($this->subject(array('BookForm', 'CFormModel')), 'allowed');
+                    return $this->invoke('instantiate', array('BookForm'));
                 },
                 'expected' => 'CFormModel',
             ),
@@ -172,18 +158,6 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
     public function constructFail()
     {
         return array(
-            'notAllowed1' => array(
-                'exception' => array('YiiFactoryGirl\FactoryException', '\CList is not \CActiveRecord.'),
-                'callback' => function() {
-                    new Builder('\CList');
-                },
-            ),
-            'notAllowed2' => array(
-                'exception' => array('YiiFactoryGirl\FactoryException', 'Book is not CFormModel.'),
-                'callback' => function() {
-                    new Builder('Book', 'CFormModel');
-                },
-            ),
             'notExist' => array(
                 'exception' => array('YiiFactoryGirl\FactoryException', 'Class NotExistClass does not exist'),
                 'callback' => function() {
@@ -452,9 +426,9 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
                 'expected' => 'CompositePrimaryKeyTable'
             ),
             'table not exist' => array(
-                'assert' => 'Null',
+                'assert' => 'False',
                 'callback' => function() {
-                    return (new Builder('BookForm', 'CFormModel'))->getTableName();
+                    return (new Builder('BookForm'))->getTableName();
                 }
             )
         );

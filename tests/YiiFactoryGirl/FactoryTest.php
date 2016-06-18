@@ -198,7 +198,7 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
                 }
             ),
             array(
-                'exception' => array('YiiFactoryGirl\FactoryException', 'There is no'),
+                'exception' => array('YiiFactoryGirl\FactoryException', 'Class FailClass does not exist'),
                 'callback'  => function() {
                     $this->invoke('build', 'FailClass');
                 }

@@ -27,16 +27,6 @@ class Builder
     protected $class = '';
 
     /**
-     * allowed
-     *
-     * allowed instantiate type
-     * default: \CActiveRecord
-     *
-     * @var string
-     */
-    protected $allowed = '\CActiveRecord';
-
-    /**
      * factoryData
      *
      * @var YiiFactoryGirl\FactoryData
@@ -58,13 +48,6 @@ class Builder
     private $reflection = null;
 
     /**
-     * instance
-     *
-     * @var mixed
-     */
-    private $instance = null;
-
-    /**
      * @var $factories
      */
     private static $factories = null;
@@ -84,23 +67,15 @@ class Builder
      * __construct
      *
      * @param string $class
-     * @param string $allowed allowed instantiate type
      * @return void
      * @throws FactoryException
      */
-    public function __construct($class, $allowed = null)
+    public function __construct($class)
     {
         $this->class = $class;
-        if ($allowed) {
-            $this->allowed = $allowed;
-        }
 
         try {
-            $reflection = @new \ReflectionClass($class);
-            if (!$reflection->isSubclassOf($this->allowed)) {
-                throw new FactoryException("{$this->class} is not {$this->allowed}.");
-            }
-            $this->reflection = $reflection;
+            $this->reflection = @new \ReflectionClass($class);
         } catch (FactoryException $e) {
             throw $e;
         } catch (\ReflectionException $e) {
@@ -166,11 +141,7 @@ class Builder
      */
     private function instantiate()
     {
-        if (!$this->instance) {
-            $this->instance = $this->reflection->newInstanceArgs();
-        }
-
-        return $this->instance;
+        return $this->reflection->newInstanceArgs();
     }
 
     /**
@@ -220,17 +191,27 @@ class Builder
     /**
      * getTableName
      *
-     * @return string
+     * @return string|false
      */
     public function getTableName()
     {
-        if (!$this->tableName && ($this->allowed === 'CActiveRecord' || $this->allowed === '\CActiveRecord')) {
-            $instance = $this->instantiate();
-            if (is_callable(array($instance, 'tableName'))) {
-                $this->tableName = $instance->tableName();
-            }
+        if (!$this->isActiveRecord()) {
+            return false;
+        }
+        if (!$this->tableName) {
+            $this->tableName = $this->instantiate()->tableName();
         }
         return $this->tableName;
+    }
+
+    /**
+     * isActiveRecord
+     *
+     * @return bool
+     */
+    public function isActiveRecord()
+    {
+        return $this->reflection->isSubclassOf('\CActiveRecord');
     }
 
     /**
