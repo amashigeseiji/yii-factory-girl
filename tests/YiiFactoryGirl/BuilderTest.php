@@ -82,15 +82,12 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
     /**
      * testNormalizeArguments
      *
-     * @covers ::normalizeArguments
+     * @covers ::normalizeAttributes
      * @covers ::parseRelationArguments
-     * @dataProvider arguments
+     * @dataProvider normalizeAttributesSuccess
      */
-    public function testNormalizeArguments($expected, $model, $args = array(), $alias = null)
+    public function testNormalizeAttributesSuccess()
     {
-        $method = new ReflectionMethod('YiiFactoryGirl\Builder::normalizeArguments');
-        $method->setAccessible(true);
-        $this->assertEquals($expected, $method->invoke(null, $model, array($args, $alias)));
     }
 
     /**
@@ -407,92 +404,97 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
      *
      * @return array
      */
-    public function arguments()
+    public function normalizeAttributesSuccess()
     {
+        $method = new ReflectionMethod('YiiFactoryGirl\Builder::normalizeAttributes');
+        $builder = new Builder('Book');
+        $method->setAccessible(true);
+
         return array(
-            'noArguments' => array(
-                array('args' => array('User', array(), null), 'relations' => array()),
-                'User'
+            'with attributes' => array(
+                'assert'   => 'Same',
+                'result'   => $method->invoke($builder, array('id' => 1)),
+                'expected' => array(
+                    'attributes' => array('id' => 1),
+                    'relations' => array()
+                ),
             ),
 
-            'withArgumentsAndAlias' => array(
-                array('args' => array('User', array('id' => 1), 'hoge'), 'relations' => array()),
-                'User', array('id' => 1), 'hoge'
-            ),
-
-            'withRelation' => array(
-                array(
-                    'args'      => array('User', array('name' => 'hoge'), 'UserAlias'),
-                    'relations' => array(
+            'with relation' => array(
+                'assert' => 'Same',
+                'result' => $method->invoke($builder, array('name' => 'hoge', 'relations' => array(
+                    array('Identity', array('test' => 'hoge'), 'alias'),
+                    array('Hoge'),
+                ))),
+                'expected' => array(
+                    'attributes' => array('name' => 'hoge'),
+                    'relations'  => array(
                         array('Identity', array('test' => 'hoge'), 'alias'),
                         array('Hoge', array(), null),
                     )
                 ),
-                'User',
-                array('name' => 'hoge', 'relations' => array(
-                    array('Identity', array('test' => 'hoge'), 'alias'),
-                    array('Hoge'),
-                )),
-                'UserAlias'
             ),
 
-            'withRelatin2' => array(
-                array(
-                    'args'      => array('User', array('name' => 'hoge', 'fuga' => 'tetete'), 'userAlias'),
-                    'relations' => array(
+            'with relatin2' => array(
+                'assert' => 'Same',
+                'result' => $method->invoke($builder, array('name' => 'hoge', 'fuga' => 'tetete', 'relations' => array(
+                        'Identity' => array('test' => 'hoge'),
+                        'Hoge' => 'HogeAlias',
+                        'Fuga',
+                    ))
+                ),
+                'expected' => array(
+                    'attributes' => array('name' => 'hoge', 'fuga' => 'tetete'),
+                    'relations'  => array(
                         array('Identity', array('test' => 'hoge'), null),
                         array('Hoge', array(), 'HogeAlias'),
                         array('Fuga', array(), null)
                     )
                 ),
-                'User',
-                array('name' => 'hoge', 'fuga' => 'tetete', 'relations' => array(
-                        'Identity' => array('test' => 'hoge'),
-                        'Hoge' => 'HogeAlias',
-                        'Fuga',
-                    )
-                ),
-                'userAlias'
             ),
 
             'HAS_MANY' => array(
-                array(
-                    'args' => array('User', array(), 'alias'),
-                    'relations' => array(
-                        array('Hoge', array('id' => 1), null),
-                        array('Hoge', array('id' => 2), null),
-                    )
-                ),
-                'User',
-                array('relations' => array(
+                'assert' => 'Same',
+                'result' => $method->invoke($builder, array('relations' => array(
                     // This format is to be interpreted as HAS_MANY relation.
                     'Hoge' => array(
                         array('id' => 1),
                         array('id' => 2),
                     ))
+                )),
+                'expected' => array(
+                    'attributes' => array(),
+                    'relations' => array(
+                        array('Hoge', array('id' => 1), null),
+                        array('Hoge', array('id' => 2), null),
+                    )
                 ),
-                'alias'
             ),
 
-            'ModelNameAlias' => array(
-                array(
-                    'args'      => array('User', array(), null),
-                    'relations' => array(
+            'Model name alias' => array(
+                'assert' => 'Same',
+                'result' => $method->invoke($builder, array('relations' => array(
+                    'Hoge.relationAlias',
+                    'Fuga.alias' => array('id' => 2)
+                ))),
+                'expected' => array(
+                    'attributes' => array(),
+                    'relations'  => array(
                         array('Hoge', array(), 'relationAlias'),
                         array('Fuga', array('id' => 2), 'alias')
                     )
                 ),
-                'User',
-                array('relations' => array(
-                    'Hoge.relationAlias',
-                    'Fuga.alias' => array('id' => 2)
-                )),
             ),
 
             'abbreviate' => array(
-                array('args'      => array('Book', array(), null),
-                      'relations' => array(array('Author', array(), null))),
-                'Book', array('Author' => array())
+                'assert' => 'Same',
+                'result' => $method->invoke($builder, array('Author' => array())),
+                'expected' => array(
+                    'attributes' => array(),
+                    'relations' => array(
+                        array('Author', array(), null)
+                    )
+                )
             )
         );
     }

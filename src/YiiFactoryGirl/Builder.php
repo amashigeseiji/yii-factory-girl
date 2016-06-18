@@ -55,8 +55,6 @@ class Builder
 
         try {
             $this->reflection = @new \ReflectionClass($class);
-        } catch (FactoryException $e) {
-            throw $e;
         } catch (\ReflectionException $e) {
             throw new FactoryException($e->getMessage());
         }
@@ -72,12 +70,12 @@ class Builder
      */
     public function build($attributes = array(), $alias = null, $create = false)
     {
-        // todo 役割ちょっと変わっているのでなんとかしたい
-        extract(self::normalizeArguments($this->class, array($attributes, $alias)));
-        @list($model, $attributes, $alias) = $args;
-
         $obj = $this->instantiate();
-        $attributes = $this->getFactoryData()->getAttributes($attributes, $alias);
+
+        extract($this->normalizeAttributes(
+            $this->getFactoryData()->getAttributes($attributes, $alias))
+        );
+
         foreach ($attributes as $key => $value) {
             if ($this->reflection->hasProperty($key)) {
                 $property = $this->reflection->getProperty($key);
@@ -164,37 +162,35 @@ class Builder
     }
 
     /**
-     * normalizeArguments
+     * normalizeAttributes
      *
-     * @param String $name
      * @param Array $args
      * @return Array
      */
-    private static function normalizeArguments($model, Array $arguments)
+    private function normalizeAttributes(Array $attributes)
     {
-        $args      = isset($arguments[0]) ? $arguments[0] : array();
-        $alias     = isset($arguments[1]) ? $arguments[1] : null;
         $relations = array();
 
-        if ($args) {
-            if (@class_exists($model) && @is_subclass_of($model, '\CActiveRecord')) {
-                // todo model には activerecord 以外も。。。
-                $rels = $model::model()->getMetaData()->relations;
-                foreach ($args as $key => $val) {
-                    if (isset($rels[$key])) {
+        if ($attributes) {
+            if ($this->isActiveRecord()) {
+                $metaData = $this->reflection
+                    ->getMethod('getMetaData')
+                    ->invoke($this->instantiate());
+                foreach ($attributes as $key => $val) {
+                    if ($metaData->hasRelation($key)) {
                         $relations[$key] = $val;
-                        unset($args[$key]);
+                        unset($attributes[$key]);
                     }
                 }
             }
-            if (isset($args['relations'])) {
-                $relations = array_merge($args['relations'], $relations);
-                unset($args['relations']);
+            if (isset($attributes['relations'])) {
+                $relations = array_merge($attributes['relations'], $relations);
+                unset($attributes['relations']);
             }
         }
 
         return array(
-            'args' => array($model, $args, $alias),
+            'attributes' => $attributes,
             'relations' => $relations ? self::parseRelationArguments($relations) : array()
         );
     }
