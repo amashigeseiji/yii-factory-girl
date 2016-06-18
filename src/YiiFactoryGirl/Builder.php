@@ -15,11 +15,6 @@ namespace YiiFactoryGirl;
 class Builder
 {
     /**
-     * FACTORY_METHOD_SUFFIX
-     */
-    const FACTORY_METHOD_SUFFIX = 'Factory';
-
-    /**
      * class
      *
      * @var string
@@ -46,22 +41,6 @@ class Builder
      * @var mixed
      */
     private $reflection = null;
-
-    /**
-     * @var $factories
-     */
-    private static $factories = null;
-
-    /**
-     * @var $selfMethods
-     */
-    private static $selfMethods = array();
-
-    /**
-     * @var $callable
-     * callable methods cache
-     */
-    private static $callable = array();
 
     /**
      * __construct
@@ -145,36 +124,6 @@ class Builder
     }
 
     /**
-     * __callStatic
-     *
-     * This method emulates factory method
-     * if called-method format is '{:ModelName}Factory'.
-     *
-     * @param string $name method name
-     * @param array $args
-     * @return mixed
-     * @throws YiiFactoryGirl\FactoryException
-     */
-    public static function __callStatic($name, $args)
-    {
-        if (!self::isCallable($name)) {
-            throw new FactoryException('Call to undefined method ' . __CLASS__ . "::{$name}().");
-        }
-
-        if (in_array($name, self::$factories)) {
-            $class = str_replace(self::FACTORY_METHOD_SUFFIX, '', $name);
-            @list($attr, $alias) = $args;
-            if (!$attr) $attr = array();
-            //TODO GET RID OF side effect
-            $result = Factory::getComponent()->create($class, $attr, $alias);
-        } else {
-            $result = call_user_func_array(self::$name, $args);
-        }
-
-        return $result;
-    }
-
-    /**
      * getFactoryData
      *
      * @return FactoryData
@@ -182,7 +131,7 @@ class Builder
     public function getFactoryData()
     {
         if (!$this->factoryData) {
-            $file = Factory::getFilePath($this->class.self::FACTORY_METHOD_SUFFIX);
+            $file = Factory::getFilePath($this->class.Factory::FACTORY_FILE_SUFFIX);
             $this->factoryData = $file ? FactoryData::fromFile($file, 'Factory.php') : new FactoryData($this->class);
         }
         return $this->factoryData;
@@ -212,65 +161,6 @@ class Builder
     public function isActiveRecord()
     {
         return $this->reflection->isSubclassOf('\CActiveRecord');
-    }
-
-    /**
-     * isCallable
-     *
-     * @param string $name method name
-     * @return bool
-     */
-    public static function isCallable($name)
-    {
-        if (empty(self::$callable)) {
-            self::setFactories();
-            self::setSelfMethods();
-            self::$callable = array_merge(self::$factories, self::$selfMethods);
-        }
-
-        if (in_array($name, self::$callable)) {
-            return true;
-        }
-
-        if (preg_match('/(.*)'.self::FACTORY_METHOD_SUFFIX.'$/', $name, $match)) {
-            try {
-                $reflection = new \ReflectionClass($match[1]);
-                if ($reflection->isSubclassOf('CActiveRecord')) {
-                    self::$factories[] = $name;
-                    self::$callable[] = $name;
-                    return true;
-                }
-            } catch (\Exception $e) {
-                //do nothing
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * setFactories
-     *
-     * @return void
-     */
-    private static function setFactories()
-    {
-        self::$factories = array_map(function($path) {
-            return explode('.', $path)[0];
-        }, Factory::getComponent()->getFiles(false));
-    }
-
-    /**
-     * setSelfMethods
-     *
-     * @return void
-     */
-    private static function setSelfMethods()
-    {
-        $reflection = new \ReflectionClass('YiiFactoryGirl\Builder');
-        self::$selfMethods = array_map(function($method) {
-            return $method->name;
-        }, $reflection->getMethods(\ReflectionMethod::IS_PUBLIC));
     }
 
     /**

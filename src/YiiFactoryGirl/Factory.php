@@ -10,6 +10,8 @@ class Factory extends \CApplicationComponent
 
     const FACTORY_FILE_SUFFIX = 'Factory';
 
+    const FACTORY_METHOD_SUFFIX = 'Factory';
+
     /**
      * @var string the name of the initialization script that would be executed before the whole test set runs.
      * Defaults to 'init.php'. If the script does not exist, every table with a factory file will be reset.
@@ -67,6 +69,7 @@ class Factory extends \CApplicationComponent
     protected static $_connectionID = 'db';
     protected static $_tables = array();
     protected static $_builders = array();
+    protected static $_factoryMethods = null;
 
     /**
      * Initializes this application component.
@@ -330,5 +333,72 @@ class Factory extends \CApplicationComponent
         }
 
         return \Yii::app()->factorygirl;
+    }
+
+    /**
+     * isFactoryMethod
+     *
+     * @param string $name method name
+     * @return bool
+     */
+    public static function isFactoryMethod($name)
+    {
+        if (empty(self::$_factoryMethods)) {
+            self::setFactoryMethods();
+        }
+
+        if (in_array($name, self::$_factoryMethods)) {
+            return true;
+        }
+
+        if (preg_match('/(.*)'.self::FACTORY_METHOD_SUFFIX.'$/', $name, $match)) {
+            try {
+                // TODO when not ActiveRecord
+                $reflection = new \ReflectionClass($match[1]);
+                if ($reflection->isSubclassOf('CActiveRecord')) {
+                    self::$_factoryMethods[] = $name;
+                    return true;
+                }
+            } catch (\Exception $e) {
+                //do nothing
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * setFactoryMethods
+     *
+     * @return void
+     */
+    private static function setFactoryMethods()
+    {
+        self::$_factoryMethods = array_map(function($path) {
+            return explode('.', $path)[0];
+        }, self::getComponent()->getFiles(false));
+    }
+
+    /**
+     * __call
+     *
+     * This method emulates factory method
+     * if called-method format is '{:ModelName}Factory'.
+     *
+     * @param string $name method name
+     * @param array $args
+     * @return mixed
+     * @throws YiiFactoryGirl\FactoryException
+     */
+    public function __call($name, $args)
+    {
+        if (self::isFactoryMethod($name)) {
+            $class = str_replace(self::FACTORY_METHOD_SUFFIX, '', $name);
+            @list($attr, $alias) = $args;
+            if (!$attr) $attr = array();
+            return $this->create($class, $attr, $alias);
+        }
+
+        return parent::__call($name, $args);
     }
 }

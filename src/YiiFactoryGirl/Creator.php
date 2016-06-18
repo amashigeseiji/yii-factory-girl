@@ -91,10 +91,10 @@ class Creator
         }
 
         if ($relation = $activeRecord->getActiveRelation($name)) {
-            $factoryMethod = $relation->className . Builder::FACTORY_METHOD_SUFFIX;
+            $factoryMethod = $relation->className . Factory::FACTORY_METHOD_SUFFIX;
             switch ($relation){
             case $relation instanceof \CBelongsToRelation:
-                $related = Builder::$factoryMethod($args, $alias);
+                $related = Factory::getComponent()->$factoryMethod($args, $alias);
                 // FIXME If primary key name equals foreign key name, it will causes duplicate entry.
                 if ($relation->foreignKey === $activeRecord->tableSchema->primaryKey && $activeRecord->getPrimaryKey() != $related->getPrimaryKey()) {
                     throw new FactoryException('Primary key and foreign key has same name, and both values are not same. Please set primary key manually not to cause duplicate entry.');
@@ -106,7 +106,7 @@ class Creator
             case $relation instanceof \CHasOneRelation:
             case $relation instanceof \CHasManyRelation:
                 $args[$relation->foreignKey] = $activeRecord->primaryKey;
-                $result = Builder::$factoryMethod($args, $alias);
+                $result = Factory::getComponent()->$factoryMethod($args, $alias);
                 if ($relation instanceof \CHasOneRelation) {
                     $index = false;
                 } else {
