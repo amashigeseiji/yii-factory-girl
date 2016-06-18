@@ -19,6 +19,14 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
+     * @covers ::__construct
+     * @dataProvider constructFail
+     */
+    public function testConstructFail($exception, callable $callback)
+    {
+    }
+
+    /**
      * - Builder::build can instantiate FormModel
      * - Builder::build can create record
      *
@@ -55,14 +63,6 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * @covers ::instantiate
-     * @dataProvider instantiateFail
-     */
-    public function testInstantiateFail($exception, callable $callback)
-    {
-    }
-
-    /**
      * @covers ::getFactoryData
      * @dataProvider getFactoryDataSuccess
      */
@@ -81,13 +81,13 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
     /**
      * @covers ::isCallable
      * @covers ::setFactories
-     * @covers ::setReflectionMethods
+     * @covers ::setSelfMethods
      * @dataProvider isCallableSuccess
      */
     public function testIsCallableSuccess()
     {
         $reflection = new ReflectionClass('YiiFactoryGirl\Builder');
-        foreach (array('callable', 'factories', 'reflectionMethods') as $propertyName) {
+        foreach (array('callable', 'factories', 'selfMethods') as $propertyName) {
             $property = $reflection->getProperty($propertyName);
             $property->setAccessible(true);
             $property->setValue(null);
@@ -161,6 +161,35 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
                 },
                 'expected' => 'CFormModel',
             ),
+        );
+    }
+
+    /**
+     * constructFail
+     *
+     * @return array
+     */
+    public function constructFail()
+    {
+        return array(
+            'notAllowed1' => array(
+                'exception' => array('YiiFactoryGirl\FactoryException', '\CList is not \CActiveRecord.'),
+                'callback' => function() {
+                    new Builder('\CList');
+                },
+            ),
+            'notAllowed2' => array(
+                'exception' => array('YiiFactoryGirl\FactoryException', 'Book is not CFormModel.'),
+                'callback' => function() {
+                    new Builder('Book', 'CFormModel');
+                },
+            ),
+            'notExist' => array(
+                'exception' => array('YiiFactoryGirl\FactoryException', 'Class NotExistClass does not exist'),
+                'callback' => function() {
+                    new Builder('NotExistClass');
+                },
+            )
         );
     }
 
@@ -295,7 +324,7 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
                 }
             ),
             'ClassNotExist' => array(
-                'exception' => array('YiiFactoryGirl\FactoryException', 'There is no'),
+                'exception' => array('YiiFactoryGirl\FactoryException', 'Class NotExistClass does not exist'),
                 'callback' => function() {
                     (new Builder('NotExistClass'))->build();
                 }
@@ -314,14 +343,14 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
             array(
                 'assert' => 'InstanceOf',
                 'callback' => function() {
-                    return $this->invoke('create', array(''), array(new Book));
+                    return $this->invoke('create', array('Book'), array(new Book));
                 },
                 'expected' => 'Book',
             ),
             array(
                 'assert' => 'NotNull',
                 'callback' => function() {
-                    return $this->invoke('create', array(''), array(new Book))->id;
+                    return $this->invoke('create', array('Book'), array(new Book))->id;
                 },
             ),
             array(
@@ -357,35 +386,6 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
                     return $this->invoke('instantiate', array('BookForm', 'CFormModel'));
                 },
                 'expected' => 'CFormModel',
-            )
-        );
-    }
-
-    /**
-     * instantiateFail
-     *
-     * @return array
-     */
-    public function instantiateFail()
-    {
-        return array(
-            'notAllowed1' => array(
-                'exception' => array('YiiFactoryGirl\FactoryException', '\CList is not \CActiveRecord.'),
-                'callback' => function() {
-                    $this->invoke('instantiate', array('\CList'));
-                },
-            ),
-            'notAllowed2' => array(
-                'exception' => array('YiiFactoryGirl\FactoryException', 'Book is not CFormModel.'),
-                'callback' => function() {
-                    $this->invoke('instantiate', array('Book', 'CFormModel'));
-                },
-            ),
-            'notExist' => array(
-                'exception' => array('YiiFactoryGirl\FactoryException', 'There is no NotExistClass class loaded.'),
-                'callback' => function() {
-                    $this->invoke('instantiate', array('NotExistClass', 'CFormModel'));
-                },
             )
         );
     }

@@ -51,14 +51,28 @@ class Builder
     private $tableName = null;
 
     /**
+     * reflection
+     *
+     * @var mixed
+     */
+    private $reflection = null;
+
+    /**
+     * instance
+     *
+     * @var mixed
+     */
+    private $instance = null;
+
+    /**
      * @var $factories
      */
     private static $factories = null;
 
     /**
-     * @var $reflectionMethods
+     * @var $selfMethods
      */
-    private static $reflectionMethods = array();
+    private static $selfMethods = array();
 
     /**
      * @var $callable
@@ -72,12 +86,25 @@ class Builder
      * @param string $class
      * @param string $allowed allowed instantiate type
      * @return void
+     * @throws FactoryException
      */
     public function __construct($class, $allowed = null)
     {
         $this->class = $class;
         if ($allowed) {
             $this->allowed = $allowed;
+        }
+
+        try {
+            $reflection = @new \ReflectionClass($class);
+            if (!$reflection->isSubclassOf($this->allowed)) {
+                throw new FactoryException("{$this->class} is not {$this->allowed}.");
+            }
+            $this->reflection = $reflection;
+        } catch (FactoryException $e) {
+            throw $e;
+        } catch (\ReflectionException $e) {
+            throw new FactoryException($e->getMessage());
         }
     }
 
@@ -87,7 +114,7 @@ class Builder
      * @param array $attributes
      * @param string|null $alias
      * @param bool $create
-     * @return \CActiveRecord
+     * @return mixed
      */
     public function build($attributes = array(), $alias = null, $create = false)
     {
@@ -96,11 +123,10 @@ class Builder
         @list($model, $attributes, $alias) = $args;
 
         $obj = $this->instantiate();
-        $reflection = new \ReflectionObject($obj);
         $attributes = $this->getFactoryData()->getAttributes($attributes, $alias);
         foreach ($attributes as $key => $value) {
-            if ($reflection->hasProperty($key)) {
-                $property = $reflection->getProperty($key);
+            if ($this->reflection->hasProperty($key)) {
+                $property = $this->reflection->getProperty($key);
                 $property->setAccessible(true);
                 $property->isStatic() ? $property->setValue($value) : $property->setValue($obj, $value);
             } else {
@@ -134,27 +160,17 @@ class Builder
     /**
      * instantiate
      *
-     * instantiate ActiveRecord
+     * instantiate given class
      *
-     * @return \CActiveRecord
-     * @throws FactoryException
+     * @return object
      */
     private function instantiate()
     {
-        try {
-            $obj = new $this->class;
-            if (!$obj instanceof $this->allowed) {
-                throw new FactoryException("{$this->class} is not {$this->allowed}.");
-            }
-        } catch (FactoryException $e) {
-            throw $e;
-        } catch (\Exception $e) {
-            throw new FactoryException(\Yii::t(Factory::LOG_CATEGORY, 'There is no {class} class loaded.', array(
-                '{class}' => $this->class,
-            )));
+        if (!$this->instance) {
+            $this->instance = $this->reflection->newInstanceArgs();
         }
 
-        return $obj;
+        return $this->instance;
     }
 
     /**
@@ -227,8 +243,8 @@ class Builder
     {
         if (empty(self::$callable)) {
             self::setFactories();
-            self::setReflectionMethods();
-            self::$callable = array_merge(self::$factories, self::$reflectionMethods);
+            self::setSelfMethods();
+            self::$callable = array_merge(self::$factories, self::$selfMethods);
         }
 
         if (in_array($name, self::$callable)) {
@@ -264,14 +280,14 @@ class Builder
     }
 
     /**
-     * setReflectionMethods
+     * setSelfMethods
      *
      * @return void
      */
-    private static function setReflectionMethods()
+    private static function setSelfMethods()
     {
         $reflection = new \ReflectionClass('YiiFactoryGirl\Builder');
-        self::$reflectionMethods = array_map(function($method) {
+        self::$selfMethods = array_map(function($method) {
             return $method->name;
         }, $reflection->getMethods(\ReflectionMethod::IS_PUBLIC));
     }
