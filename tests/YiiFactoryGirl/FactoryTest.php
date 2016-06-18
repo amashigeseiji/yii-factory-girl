@@ -17,8 +17,6 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * @covers ::getFiles
-     * @covers ::getBasePath
      */
     public function testGetFiles()
     {
@@ -30,8 +28,6 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * @covers ::init
-     * @covers ::prepare
      */
     public function testPrepareWithInit()
     {
@@ -42,7 +38,6 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * @covers ::getDbConnection
      */
     public function testGetDbConnection()
     {
@@ -50,7 +45,6 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * @covers ::getDbConnection
      * @dataProvider getDbConnectionFail
      */
     public function testGetDbConnectionFail($exception, callable $callback)
@@ -58,10 +52,6 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * @covers ::prepare
-     * @covers ::checkIntegrity
-     * @covers ::resetTable
-     * @covers ::truncateTable
      */
     public function testPrepare()
     {
@@ -78,7 +68,6 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * @covers ::truncateTable
      * @dataProvider truncateTableFail
      */
     public function testTruncateTableFailIfTableNotExists($exception, callable $callback)
@@ -86,7 +75,6 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * @covers ::build
      * @dataProvider buildSuccess
      */
     public function testBuildSuccess($assert, callable $callback, $expected = null)
@@ -94,7 +82,6 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * @covers ::build
      * @dataProvider buildFail
      */
     public function testBuildFail($exception, callable $callback)
@@ -102,16 +89,12 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * @covers ::create
      * @dataProvider createSuccess
      */
     public function testCreateSuccess($assert, callable $callback, $expected = null)
     {
     }
 
-    /**
-     * @covers ::truncateTables
-     */
     public function testTruncateTables()
     {
         $this->invoke('create', 'Book');
@@ -120,9 +103,6 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
         $this->assertEquals(0, Book::model()->count());
     }
 
-    /**
-     * @covers ::flush
-     */
     public function testFlush()
     {
         $this->invoke('create', 'Book');
@@ -133,8 +113,6 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * @covers ::isFactoryMethod
-     * @covers ::setFactoryMethods
      * @dataProvider isFactoryMethodSuccess
      */
     public function testIsFactoryMethodSuccess()
@@ -146,7 +124,6 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * @covers ::__call
      * @dataProvider emulatedMethodSuccess
      */
     public function testEmulatedMethodSuccess()
@@ -154,7 +131,6 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * @covers ::__call
      * @expectedException CException
      */
     public function testNotCallable()

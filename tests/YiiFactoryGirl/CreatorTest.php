@@ -9,9 +9,6 @@ use YiiFactoryGirl\Factory;
 class CreatorTest extends YiiFactoryGirl\UnitTestCase
 {
     /**
-     * @covers ::create
-     * @covers ::createRelations
-     * @covers ::createRelation
      * @dataProvider relationsSuccess
      */
     public function testRelationsSuccess()
@@ -19,7 +16,6 @@ class CreatorTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * @covers ::createRelation
      * @expectedException YiiFactoryGirl\FactoryException
      * @expectedExceptionMessage Primary key and foreign key has same name
      */

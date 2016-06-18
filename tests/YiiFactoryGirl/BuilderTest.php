@@ -11,7 +11,6 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
     protected $subject = 'YiiFactoryGirl\Builder';
 
     /**
-     * @covers ::__construct
      * @dataProvider constructSuccess
      */
     public function testConstructSuccess($assert, callable $callback, $expected = null)
@@ -19,7 +18,6 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * @covers ::__construct
      * @dataProvider constructFail
      */
     public function testConstructFail($exception, callable $callback)
@@ -30,8 +28,6 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
      * - Builder::build can instantiate FormModel
      * - Builder::build can create record
      *
-     * @covers ::build
-     * @covers ::create
      * @dataProvider buildSuccess
      */
     public function testBuildSuccess($assert, callable $callback, $expected = null)
@@ -39,7 +35,6 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * @covers ::build
      * @dataProvider buildFail
      */
     public function testBuildFail(array $exception, callable $callback)
@@ -47,7 +42,6 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * @covers ::create
      * @dataProvider createSuccess
      */
     public function testCreateSuccess($assert, callable $callback, $expected = null)
@@ -55,7 +49,6 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * @covers ::instantiate
      * @dataProvider instantiateSuccess
      */
     public function testInstantiateSuccess($assert, callable $callback, $expected = null)
@@ -63,7 +56,6 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * @covers ::getFactoryData
      * @dataProvider getFactoryDataSuccess
      */
     public function testGetFactoryDataSuccess()
@@ -71,7 +63,6 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * @covers ::getTableName
      * @dataProvider getTableNameSuccess
      */
     public function testGetTableNameSuccess($assert, callable $callback, $expected = null)
@@ -80,10 +71,6 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
 
 
     /**
-     * testNormalizeArguments
-     *
-     * @covers ::normalizeAttributes
-     * @covers ::parseRelationArguments
      * @dataProvider normalizeAttributesSuccess
      */
     public function testNormalizeAttributesSuccess()

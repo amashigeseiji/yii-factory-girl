@@ -63,7 +63,6 @@ class FactoryTestCaseTest extends FactoryTestCase
     );
 
     /**
-     * @covers ::__get
      * @dataProvider factoryTestCaseSuccess
      */
     public function testFactoryTestCaseSuccess($assert, $result, $expected = null)
@@ -71,7 +70,6 @@ class FactoryTestCaseTest extends FactoryTestCase
     }
 
     /**
-     * @covers ::__get
      * @dataProvider getFail
      */
     public function testGetFail()
@@ -79,7 +77,6 @@ class FactoryTestCaseTest extends FactoryTestCase
     }
 
     /**
-     * @covers ::__call
      * @expectedException YiiFactoryGirl\FactoryException
      * @expectedExceptionMessage Call to undefined method
      */
@@ -112,7 +109,6 @@ class FactoryTestCaseTest extends FactoryTestCase
     }
 
     /**
-     * @covers ::__call
      */
     public function testOverriddenFactory()
     {
@@ -120,9 +116,6 @@ class FactoryTestCaseTest extends FactoryTestCase
         $this->assertEquals('FactoryTestCaseTest::NotExistFactory', $this->notExist);
     }
 
-    /**
-     * @covers ::truncateTable
-     */
     public function testTruncateTable()
     {
         $noRelation1 = $this->noRelation1;
@@ -132,9 +125,6 @@ class FactoryTestCaseTest extends FactoryTestCase
         $this->assertNull(HaveNoRelation::model()->findByPk($noRelation1->id));
     }
 
-    /**
-     * @covers ::__get
-     */
     public function testRelations()
     {
         $this->assertInstanceOf('Book', $this->author2->Books[0]);

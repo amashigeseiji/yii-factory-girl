@@ -8,8 +8,6 @@ use YiiFactoryGirl\FactoryData;
 class FactoryDataTest extends PHPUnit_Framework_TestCase
 {
     /**
-     * @covers ::fromFile
-     * @covers ::__construct
      */
     public function testFromFile()
     {
@@ -21,7 +19,6 @@ class FactoryDataTest extends PHPUnit_Framework_TestCase
     }
 
     /**
-     * @covers ::getAttributes
      */
     public function testGetAttributesFromFile()
     {
@@ -32,7 +29,6 @@ class FactoryDataTest extends PHPUnit_Framework_TestCase
     }
 
     /**
-     * @covers ::fromFile
      * @expectedException YiiFactoryGirl\FactoryException
      * @expectedExceptionMessage NotExistFactory.php" does not seem to be factory data file.
      */
@@ -43,7 +39,6 @@ class FactoryDataTest extends PHPUnit_Framework_TestCase
     }
 
     /**
-     * @covers ::fromFile
      * @expectedException YiiFactoryGirl\FactoryException
      * @expectedExceptionMessage expected to return config array with "attributes" inside
      */
@@ -54,7 +49,6 @@ class FactoryDataTest extends PHPUnit_Framework_TestCase
     }
 
     /**
-     * @covers ::getAttributes
      * @expectedException YiiFactoryGirl\FactoryException
      * @expectedExceptionMessage Alias "invalidAlias" not found
      */
