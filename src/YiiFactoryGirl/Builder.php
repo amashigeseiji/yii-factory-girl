@@ -70,7 +70,7 @@ class Builder
      */
     public function build($attributes = array(), $alias = null, $create = false)
     {
-        $obj = $this->instantiate();
+        $instance = $this->instantiate();
 
         extract($this->normalizeAttributes(
             $this->getFactoryData()->getAttributes($attributes, $alias))
@@ -80,10 +80,10 @@ class Builder
             if ($this->reflection->hasProperty($key)) {
                 $property = $this->reflection->getProperty($key);
                 $property->setAccessible(true);
-                $property->isStatic() ? $property->setValue($value) : $property->setValue($obj, $value);
+                $property->isStatic() ? $property->setValue($value) : $property->setValue($instance, $value);
             } else {
                 try {
-                    $obj->__set($key, $value);
+                    $instance->$key = $value;
                 } catch(\CException $e) {
                     \Yii::log($e->getMessage(), \CLogger::LEVEL_ERROR);
                     throw new FactoryException(\Yii::t(Factory::LOG_CATEGORY, 'Unknown attribute "{attr} for class {class}.', array(
@@ -94,7 +94,7 @@ class Builder
             }
         }
 
-        return $create ? $this->create($obj, $relations) : $obj;
+        return $create ? $this->create($instance, $relations) : $instance;
     }
 
     /**
