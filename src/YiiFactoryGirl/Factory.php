@@ -311,7 +311,9 @@ class Factory extends \CApplicationComponent
     {
         $builder = new Builder($class);
         self::$_builders[$class] = $builder;
-        self::$_tables[] = $builder->getTableName();
+        if (self::$_builders[$class]->isActiveRecord()) {
+            self::$_tables[] = $builder->getTableName();
+        }
     }
 
     /**
