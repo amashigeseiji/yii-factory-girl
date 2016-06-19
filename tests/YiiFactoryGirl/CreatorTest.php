@@ -16,19 +16,10 @@ class CreatorTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * @expectedException YiiFactoryGirl\FactoryException
-     * @expectedExceptionMessage Primary key and foreign key has same name
+     * @dataProvider createFail
      */
-    public function testExceptionIfPrimaryKeyAndForeignKeyHasSameName()
+    public function testCreateFail()
     {
-        $component = YiiFactoryGirl\Factory::getComponent();
-        $component->checkIntegrity(false);
-        $component->resetTable('SameIdToAuthor');
-        $component->resetTable('Author');
-        $component->checkIntegrity(true);
-        Factory::getComponent()->SameIdToAuthorFactory(array('id' => 1, 'relations' => array(
-            'Author' =>  array('id' => 2)
-        )), null, true);
     }
 
     /**
@@ -154,6 +145,25 @@ class CreatorTest extends YiiFactoryGirl\UnitTestCase
                     }, $publisher->Series[0]->Books);
                 },
                 'expected' => array('Raspberry Pi Hacks', 'HTML5 Hacks')
+            ),
+        );
+    }
+
+    public function createFail()
+    {
+        return array(
+            'primary key and foreign key has same name' => array(
+                'exception' => array('YiiFactoryGirl\FactoryException', 'Primary key and foreign key has same name'),
+                'callback'  => function() {
+                    $component = Factory::getComponent();
+                    $component->checkIntegrity(false);
+                    $component->resetTable('SameIdToAuthor');
+                    $component->resetTable('Author');
+                    $component->checkIntegrity(true);
+                    Factory::getComponent()->SameIdToAuthorFactory(array('id' => 1, 'relations' => array(
+                        'Author' =>  array('id' => 2)
+                    )), null, true);
+                }
             ),
         );
     }
