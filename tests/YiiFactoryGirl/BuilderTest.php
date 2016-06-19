@@ -8,8 +8,6 @@ use YiiFactoryGirl\Builder;
  */
 class BuilderTest extends YiiFactoryGirl\UnitTestCase
 {
-    protected $subject = 'YiiFactoryGirl\Builder';
-
     /**
      * @dataProvider constructSuccess
      */
@@ -48,12 +46,6 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
     {
     }
 
-    /**
-     * @dataProvider instantiateSuccess
-     */
-    public function testInstantiateSuccess($assert, callable $callback, $expected = null)
-    {
-    }
 
     /**
      * @dataProvider getFactoryDataSuccess
@@ -69,14 +61,6 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
     {
     }
 
-
-    /**
-     * @dataProvider normalizeAttributesSuccess
-     */
-    public function testNormalizeAttributesSuccess()
-    {
-    }
-
     /**
      * constructSuccess
      *
@@ -88,14 +72,14 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
             'class name is set' => array(
                 'assert' => 'Equals',
                 'callback' => function() {
-                    return $this->getProperty($this->subject(array('Book')), 'class');
+                    return $this->getProperty(new Builder('Book'), 'class');
                 },
                 'expected' => 'Book',
             ),
             'FormModel class is allowed' => array(
                 'assert' => 'InstanceOf',
                 'callback' => function() {
-                    return $this->invoke('instantiate', array('BookForm'));
+                    return (new Builder('BookForm'))->build();
                 },
                 'expected' => 'CFormModel',
             ),
@@ -110,7 +94,7 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
     public function constructFail()
     {
         return array(
-            'notExist' => array(
+            'class not exist' => array(
                 'exception' => array('YiiFactoryGirl\FactoryException', 'Class NotExistClass does not exist'),
                 'callback' => function() {
                     new Builder('NotExistClass');
@@ -133,7 +117,7 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
             'Build ActiveRecord without arguments' => array(
                 'assert' => 'InstanceOf',
                 'callback' => function() {
-                    return $this->invoke('build', array('Book'));
+                    return (new Builder('Book'))->build();
                 },
                 'expected' => 'Book',
             ),
@@ -141,7 +125,7 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
                 'assert' => 'Equals',
                 'callback' => function() {
                     return $this->getProperty(
-                        $this->invoke('build', array('Book'), array(array('name' => 'sample book'))),
+                        (new Builder('Book'))->build(array('name' => 'sample book')),
                         'name'
                     );
                 },
@@ -151,11 +135,17 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
                 'assert' => 'Equals',
                 'callback' => function() {
                     return $this->getProperty(
-                        $this->invoke('build', array('Book'), array(array(), 'testAlias')),
+                        (new Builder('Book'))->build(array(), 'testAlias'),
                         'name'
                     );
                 },
                 'expected' => 'inserted by alias',
+            ),
+            'primary key is not set' => array(
+                'assert' => 'Null',
+                'callback' => function() {
+                    return (new Builder('Book'))->build()->id;
+                }
             ),
 
             // property set
@@ -163,7 +153,7 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
                 'assert' => 'Equals',
                 'callback' => function() {
                     return $this->getProperty(
-                        $this->invoke('build', array('HaveNoRelation'), array(array('staticProperty' => 'static property is set.'))),
+                        (new Builder('HaveNoRelation'))->build(array('staticProperty' => 'static property is set.')),
                         'staticProperty'
                     );
                 },
@@ -173,7 +163,7 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
                 'assert' => 'Equals',
                 'callback' => function() {
                     return $this->getProperty(
-                        $this->invoke('build', array('HaveNoRelation'), array(array('publicProperty' => 'public property is set.'))),
+                        (new Builder('HaveNoRelation'))->build(array('publicProperty' => 'public property is set.')),
                         'publicProperty'
                     );
                 },
@@ -183,7 +173,7 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
                 'assert' => 'Equals',
                 'callback' => function() {
                     return $this->getProperty(
-                        $this->invoke('build', array('HaveNoRelation'), array(array('privateProperty' => 'private property is set.'))),
+                        (new Builder('HaveNoRelation'))->build(array('privateProperty' => 'private property is set.')),
                         'privateProperty'
                     );
                 },
@@ -194,7 +184,7 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
             'Build form model' => array(
                 'assert' => 'InstanceOf',
                 'callback' => function() {
-                    return $this->invoke('build', array('BookForm', 'CFormModel'));
+                    return (new Builder('BookForm'))->build();
                 },
                 'expected' => 'CFormModel',
             ),
@@ -202,7 +192,7 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
                 'assert' => 'Equals',
                 'callback' => function() {
                     return $this->getProperty(
-                        $this->invoke('build', array('BookForm', 'CFormModel'), array(array('name' => 'sample book'))),
+                        (new Builder('BookForm'))->build(array('name' => 'sample book')),
                         'name'
                     );
                 },
@@ -213,7 +203,7 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
             'create' => array(
                 'assert' => 'InstanceOf',
                 'callback' => function() {
-                    return $this->invoke('build', array('Book'), array(array(), null, true));
+                    return (new Builder('Book'))->build(array(), null, true);
                 },
                 'expected' => 'Book',
             ),
@@ -221,7 +211,7 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
                 'assert' => 'NotNull',
                 'callback' => function() {
                     return $this->getProperty(
-                        $this->invoke('build', array('Book'), array(array(), null, true)),
+                        (new Builder('Book'))->build(array(), null, true),
                         'id'
                     );
                 },
@@ -237,19 +227,19 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
     public function buildFail()
     {
         return array(
-            'UnknownAttribute' => array(
+            'unknown attribute is given' => array(
                 'exception' => array('YiiFactoryGirl\FactoryException', 'Unknown attribute'),
                 'callback' => function() {
                     (new Builder('Book'))->build(array('hoge' => 'fuga'));
                 }
             ),
-            'AliasNotExist' => array(
+            'alias not exist' => array(
                 'exception' => array('YiiFactoryGirl\FactoryException', 'Alias "aliasNotExist" not found for class "Book"'),
                 'callback' => function() {
                     (new Builder('Book'))->build(array(), 'aliasNotExist');
                 }
             ),
-            'ClassNotExist' => array(
+            'class not exist' => array(
                 'exception' => array('YiiFactoryGirl\FactoryException', 'Class NotExistClass does not exist'),
                 'callback' => function() {
                     (new Builder('NotExistClass'))->build();
@@ -269,14 +259,14 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
             array(
                 'assert' => 'InstanceOf',
                 'callback' => function() {
-                    return $this->invoke('create', array('Book'), array(new Book));
+                    return $this->invoke('create', new Builder('Book'), array(new Book));
                 },
                 'expected' => 'Book',
             ),
             array(
                 'assert' => 'NotNull',
                 'callback' => function() {
-                    return $this->invoke('create', array('Book'), array(new Book))->id;
+                    return $this->invoke('create', new Builder('Book'), array(new Book))->id;
                 },
             ),
             array(
@@ -288,31 +278,6 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
                     return Composite::model()->findByPk($result)->primaryKey;
                 }
             ),
-        );
-    }
-
-    /**
-     * instantiateSuccess
-     *
-     * @return array
-     */
-    public function instantiateSuccess()
-    {
-        return array(
-            'ActiveRecord' => array(
-                'assert' => 'InstanceOf',
-                'callback' => function() {
-                    return $this->invoke('instantiate', array('Book'));
-                },
-                'expected' => 'CActiveRecord',
-            ),
-            'FormModel' => array(
-                'assert' => 'InstanceOf',
-                'callback' => function() {
-                    return $this->invoke('instantiate', array('BookForm', 'CFormModel'));
-                },
-                'expected' => 'CFormModel',
-            )
         );
     }
 
@@ -386,106 +351,6 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
         );
     }
 
-    /**
-     * dataProvider for testNormalizeArguments
-     *
-     * @return array
-     */
-    public function normalizeAttributesSuccess()
-    {
-        $method = new ReflectionMethod('YiiFactoryGirl\Builder::normalizeAttributes');
-        $builder = new Builder('Book');
-        $method->setAccessible(true);
-
-        return array(
-            'with attributes' => array(
-                'assert'   => 'Same',
-                'result'   => $method->invoke($builder, array('id' => 1)),
-                'expected' => array(
-                    'attributes' => array('id' => 1),
-                    'relations' => array()
-                ),
-            ),
-
-            'with relation' => array(
-                'assert' => 'Same',
-                'result' => $method->invoke($builder, array('name' => 'hoge', 'relations' => array(
-                    array('Identity', array('test' => 'hoge'), 'alias'),
-                    array('Hoge'),
-                ))),
-                'expected' => array(
-                    'attributes' => array('name' => 'hoge'),
-                    'relations'  => array(
-                        array('Identity', array('test' => 'hoge'), 'alias'),
-                        array('Hoge', array(), null),
-                    )
-                ),
-            ),
-
-            'with relatin2' => array(
-                'assert' => 'Same',
-                'result' => $method->invoke($builder, array('name' => 'hoge', 'fuga' => 'tetete', 'relations' => array(
-                        'Identity' => array('test' => 'hoge'),
-                        'Hoge' => 'HogeAlias',
-                        'Fuga',
-                    ))
-                ),
-                'expected' => array(
-                    'attributes' => array('name' => 'hoge', 'fuga' => 'tetete'),
-                    'relations'  => array(
-                        array('Identity', array('test' => 'hoge'), null),
-                        array('Hoge', array(), 'HogeAlias'),
-                        array('Fuga', array(), null)
-                    )
-                ),
-            ),
-
-            'HAS_MANY' => array(
-                'assert' => 'Same',
-                'result' => $method->invoke($builder, array('relations' => array(
-                    // This format is to be interpreted as HAS_MANY relation.
-                    'Hoge' => array(
-                        array('id' => 1),
-                        array('id' => 2),
-                    ))
-                )),
-                'expected' => array(
-                    'attributes' => array(),
-                    'relations' => array(
-                        array('Hoge', array('id' => 1), null),
-                        array('Hoge', array('id' => 2), null),
-                    )
-                ),
-            ),
-
-            'Model name alias' => array(
-                'assert' => 'Same',
-                'result' => $method->invoke($builder, array('relations' => array(
-                    'Hoge.relationAlias',
-                    'Fuga.alias' => array('id' => 2)
-                ))),
-                'expected' => array(
-                    'attributes' => array(),
-                    'relations'  => array(
-                        array('Hoge', array(), 'relationAlias'),
-                        array('Fuga', array('id' => 2), 'alias')
-                    )
-                ),
-            ),
-
-            'abbreviate' => array(
-                'assert' => 'Same',
-                'result' => $method->invoke($builder, array('Author' => array())),
-                'expected' => array(
-                    'attributes' => array(),
-                    'relations' => array(
-                        array('Author', array(), null)
-                    )
-                )
-            )
-        );
-    }
-
 
     /* UTILITIES */
 
@@ -497,27 +362,12 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
      * @param array $args
      * @return mixed
      */
-    protected function invoke($method, $construct = array(), $args = array())
+    protected function invoke($method, $instance, $args = array())
     {
-        $method = new \ReflectionMethod($this->subject, $method);
+        $method = new \ReflectionMethod('YiiFactoryGirl\Builder', $method);
         $method->setAccessible(true);
 
-        return $method->invokeArgs($this->subject($construct), $args);
-    }
-
-    /**
-     * getSubject
-     *
-     * @param mixed $construct
-     * @return object
-     */
-    protected function subject($construct = array())
-    {
-        if (!is_array($construct)) {
-            $construct = array($construct);
-        }
-        return (new \ReflectionClass($this->subject))
-            ->newInstanceArgs($construct);
+        return $method->invokeArgs($instance, $args);
     }
 
     /**

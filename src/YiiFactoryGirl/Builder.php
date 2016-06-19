@@ -29,35 +29,15 @@ class Builder
     protected $factoryData = null;
 
     /**
-     * tableName
-     *
-     * @var string|null
-     */
-    private $tableName = null;
-
-    /**
-     * reflection
-     *
-     * @var mixed
-     */
-    private $reflection = null;
-
-    /**
      * __construct
      *
      * @param string $class
      * @return void
-     * @throws FactoryException
      */
     public function __construct($class)
     {
         $this->class = $class;
-
-        try {
-            $this->reflection = @new \ReflectionClass($class);
-        } catch (\ReflectionException $e) {
-            throw new FactoryException($e->getMessage());
-        }
+        $this->setFactoryData();
     }
 
     /**
@@ -70,31 +50,8 @@ class Builder
      */
     public function build($attributes = array(), $alias = null, $create = false)
     {
-        $instance = $this->instantiate();
-
-        extract($this->normalizeAttributes(
-            $this->getFactoryData()->getAttributes($attributes, $alias))
-        );
-
-        foreach ($attributes as $key => $value) {
-            if ($this->reflection->hasProperty($key)) {
-                $property = $this->reflection->getProperty($key);
-                $property->setAccessible(true);
-                $property->isStatic() ? $property->setValue($value) : $property->setValue($instance, $value);
-            } else {
-                try {
-                    $instance->$key = $value;
-                } catch(\CException $e) {
-                    \Yii::log($e->getMessage(), \CLogger::LEVEL_ERROR);
-                    throw new FactoryException(\Yii::t(Factory::LOG_CATEGORY, 'Unknown attribute "{attr} for class {class}.', array(
-                        '{attr}' => $key,
-                        '{class}' => $this->class
-                    )));
-                }
-            }
-        }
-
-        return $create ? $this->create($instance, $relations) : $instance;
+        $this->factoryData->build($attributes, $alias);
+        return $create ? $this->create($this->factoryData->build, $this->factoryData->relations) : $this->factoryData->build;
     }
 
     /**
@@ -110,15 +67,14 @@ class Builder
     }
 
     /**
-     * instantiate
+     * setFactoryData
      *
-     * instantiate given class
-     *
-     * @return object
+     * @return void
      */
-    private function instantiate()
+    private function setFactoryData()
     {
-        return $this->reflection->newInstanceArgs();
+        $file = Factory::getFilePath($this->class.Factory::FACTORY_FILE_SUFFIX);
+        $this->factoryData = $file ? FactoryData::fromFile($file, 'Factory.php') : new FactoryData($this->class);
     }
 
     /**
@@ -128,10 +84,6 @@ class Builder
      */
     public function getFactoryData()
     {
-        if (!$this->factoryData) {
-            $file = Factory::getFilePath($this->class.Factory::FACTORY_FILE_SUFFIX);
-            $this->factoryData = $file ? FactoryData::fromFile($file, 'Factory.php') : new FactoryData($this->class);
-        }
         return $this->factoryData;
     }
 
@@ -142,13 +94,7 @@ class Builder
      */
     public function getTableName()
     {
-        if (!$this->isActiveRecord()) {
-            return false;
-        }
-        if (!$this->tableName) {
-            $this->tableName = $this->instantiate()->tableName();
-        }
-        return $this->tableName;
+        return $this->getFactoryData()->getTableName();
     }
 
     /**
@@ -158,111 +104,6 @@ class Builder
      */
     public function isActiveRecord()
     {
-        return $this->reflection->isSubclassOf('\CActiveRecord');
-    }
-
-    /**
-     * normalizeAttributes
-     *
-     * @param Array $args
-     * @return Array
-     */
-    private function normalizeAttributes(Array $attributes)
-    {
-        $relations = array();
-
-        if ($attributes) {
-            if ($this->isActiveRecord()) {
-                $metaData = $this->reflection
-                    ->getMethod('getMetaData')
-                    ->invoke($this->instantiate());
-                foreach ($attributes as $key => $val) {
-                    if ($metaData->hasRelation($key)) {
-                        $relations[$key] = $val;
-                        unset($attributes[$key]);
-                    }
-                }
-            }
-            if (isset($attributes['relations'])) {
-                $relations = array_merge($attributes['relations'], $relations);
-                unset($attributes['relations']);
-            }
-        }
-
-        return array(
-            'attributes' => $attributes,
-            'relations' => $relations ? self::parseRelationArguments($relations) : array()
-        );
-    }
-
-    /**
-     * parseRelationArguments
-     *
-     * @param Array $relationsArguments
-     * @return Array
-     * @throws YiiFactoryGirl\FactoryException
-     */
-    private static function parseRelationArguments(Array $relationsArguments)
-    {
-        $relations = array();
-
-        /**
-         * following format will be assumed as HAS_MANY relation:
-         *
-         * FactoryGirl::HogeFactory(array('relations' => array(
-         *   ':RelatedObject' => array(
-         *       array('Category_id' => 1, 'sortOrder' => 1),
-         *       array('Category_id' => 2, 'sortOrder' => 2)
-         *   ),
-         * )));
-         *
-         * @param Array $args
-         * @return Array
-         */
-        $hasManyRelation = function(Array $args) {
-            $hasMany = array();
-            foreach ($args as $key => $val) {
-                if (is_int($key) && is_array($val)) {
-                    $hasMany[] = $val;
-                }
-            }
-            return $hasMany;
-        };
-
-        foreach ($relationsArguments as $key => $value) {
-            $model = '';
-            $args = array();
-            $alias = null;
-
-            if (is_int($key)) { // normal array
-                if (is_string($value)) {
-                    $model = $value;
-                } elseif (is_array($value)) {
-                    @list($model, $args, $alias) = $value;
-                    if (is_null($args)) {
-                        $args = array();
-                    }
-                } else {
-                    throw new FactoryException('Invalid arguments.');
-                }
-            } else { // hash
-                $model = $key;
-                is_string($value) ? $alias = $value : $args = $value;
-            }
-
-            if (strpos($model, '.')) {
-                list($model, $alias) = explode('.', $model);
-            }
-
-            if ($hasMany = $hasManyRelation($args)) {
-                foreach ($hasMany as $hasManyArgs) {
-                    $relations[] = array($model, $hasManyArgs, $alias);
-                }
-            } else {
-                $relations[] = array($model, $args, $alias);
-            }
-        }
-
-        return $relations;
+        return $this->getFactoryData()->isActiveRecord();
     }
 }
