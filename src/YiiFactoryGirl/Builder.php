@@ -45,25 +45,28 @@ class Builder
      *
      * @param array $attributes
      * @param string|null $alias
-     * @param bool $create
      * @return mixed
      */
-    public function build($attributes = array(), $alias = null, $create = false)
+    public function build($attributes = array(), $alias = null)
     {
-        $this->factoryData->build($attributes, $alias);
-        return $create ? $this->create($this->factoryData->build, $this->factoryData->relations) : $this->factoryData->build;
+        return $this->factoryData->build($attributes, $alias)->build;
     }
 
     /**
      * create
      *
-     * @param \CActiveRecord $obj
-     * @param array $relations
+     * @param array $attributes
+     * @param string $alias
      * @return \CActiveRecord
+     * @throws YiiFactoryGirl\FactoryException
      */
-    private function create(\CActiveRecord $obj, $relations = array())
+    public function create($attributes = array(), $alias = null)
     {
-        return Creator::create($obj, $relations);
+        if (!$this->isActiveRecord()) {
+            throw new FactoryException($this->class.' is not ActiveRecord.');
+        }
+        $this->factoryData->build($attributes, $alias);
+        return Creator::create($this->factoryData->build, $this->factoryData->relations);
     }
 
     /**

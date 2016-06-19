@@ -24,7 +24,6 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
 
     /**
      * - Builder::build can instantiate FormModel
-     * - Builder::build can create record
      *
      * @dataProvider buildSuccess
      */
@@ -124,20 +123,14 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
             'attribute is given' => array(
                 'assert' => 'Equals',
                 'callback' => function() {
-                    return $this->getProperty(
-                        (new Builder('Book'))->build(array('name' => 'sample book')),
-                        'name'
-                    );
+                    return (new Builder('Book'))->build(array('name' => 'sample book'))->name;
                 },
                 'expected' => 'sample book',
             ),
             'use alias' => array(
                 'assert' => 'Equals',
                 'callback' => function() {
-                    return $this->getProperty(
-                        (new Builder('Book'))->build(array(), 'testAlias'),
-                        'name'
-                    );
+                    return (new Builder('Book'))->build(array(), 'testAlias')->name;
                 },
                 'expected' => 'inserted by alias',
             ),
@@ -198,24 +191,6 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
                 },
                 'expected' => 'sample book',
             ),
-
-            // create
-            'create' => array(
-                'assert' => 'InstanceOf',
-                'callback' => function() {
-                    return (new Builder('Book'))->build(array(), null, true);
-                },
-                'expected' => 'Book',
-            ),
-            'created id does exist' => array(
-                'assert' => 'NotNull',
-                'callback' => function() {
-                    return $this->getProperty(
-                        (new Builder('Book'))->build(array(), null, true),
-                        'id'
-                    );
-                },
-            ),
         );
     }
 
@@ -256,23 +231,23 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
     public function createSuccess()
     {
         return array(
-            array(
+            'return CActiveRecord instance' => array(
                 'assert' => 'InstanceOf',
                 'callback' => function() {
-                    return $this->invoke('create', new Builder('Book'), array(new Book));
+                    return (new Builder('Book'))->create();
                 },
-                'expected' => 'Book',
+                'expected' => 'CActiveRecord',
             ),
-            array(
+            'primary key is set' => array(
                 'assert' => 'NotNull',
                 'callback' => function() {
-                    return $this->invoke('create', new Builder('Book'), array(new Book))->id;
+                    return (new Builder('Book'))->create()->id;
                 },
             ),
-            array(
+            'record exists' => array(
                 'assert' => 'NotNull',
                 'callback' => function() {
-                    return (new Builder('Composite'))->build(array('pk2' => YiiFactoryGirl\Sequence::get('{{sequence}}')), null, true)->primaryKey;
+                    return (new Builder('Composite'))->create(array('pk2' => YiiFactoryGirl\Sequence::get('{{sequence}}')))->primaryKey;
                 },
                 'expected' => function($result) {
                     return Composite::model()->findByPk($result)->primaryKey;

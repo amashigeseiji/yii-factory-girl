@@ -226,7 +226,7 @@ class Factory extends \CApplicationComponent
      */
     public function create($class, array $args = array(), $alias = null)
     {
-        return $this->getBuilder($class)->build($args, $alias, true);
+        return $this->getBuilder($class)->create($args, $alias);
     }
 
     /**
