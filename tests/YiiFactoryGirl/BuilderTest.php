@@ -45,6 +45,12 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
     {
     }
 
+    /**
+     * @dataProvider createFail
+     */
+    public function testCreateFail()
+    {
+    }
 
     /**
      * @dataProvider getFactoryDataSuccess
@@ -251,6 +257,23 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
                 },
                 'expected' => function($result) {
                     return Composite::model()->findByPk($result)->primaryKey;
+                }
+            ),
+        );
+    }
+
+    /**
+     * createFail
+     *
+     * @return array
+     */
+    public function createFail()
+    {
+        return array(
+            array(
+                'exception' => array('YiiFactoryGirl\FactoryException', 'BookForm is not ActiveRecord.'),
+                'callback'  => function() {
+                    (new Builder('BookForm'))->create();
                 }
             ),
         );
