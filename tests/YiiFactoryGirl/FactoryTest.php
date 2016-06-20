@@ -16,8 +16,6 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
         }
     }
 
-    /**
-     */
     public function testGetFiles()
     {
         $fileNames = YiiFactoryGirl\Factory::getFiles(false); // not absolute path
@@ -27,8 +25,6 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
         }
     }
 
-    /**
-     */
     public function testPrepareWithInit()
     {
         $this->invoke('create', 'Book');
@@ -37,8 +33,6 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
         $this->assertEquals(0, Book::model()->count());
     }
 
-    /**
-     */
     public function testGetDbConnection()
     {
         $this->assertInstanceOf('CDbConnection', $this->invoke('getDbConnection'));
@@ -51,8 +45,6 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
     {
     }
 
-    /**
-     */
     public function testPrepare()
     {
         foreach (array('Book', 'Author', 'Publisher', 'HaveNoRelation') as $class) {
@@ -138,6 +130,11 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
         Factory::getComponent()->HogeFugaFactory();
     }
 
+    /**
+     * getDbConnectionFail
+     *
+     * @return array
+     */
     public function getDbConnectionFail()
     {
         return array(
@@ -155,6 +152,11 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
         );
     }
 
+    /**
+     * truncateTableFail
+     *
+     * @return array
+     */
     public function truncateTableFail()
     {
         return array(
@@ -167,6 +169,11 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
         );
     }
 
+    /**
+     * buildSuccess
+     *
+     * @return array
+     */
     public function buildSuccess()
     {
         return array(
@@ -194,6 +201,11 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
         );
     }
 
+    /**
+     * buildFail
+     *
+     * @return array
+     */
     public function buildFail()
     {
         return array(
@@ -212,46 +224,69 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
         );
     }
 
+    /**
+     * createSuccess
+     *
+     * @return array
+     */
     public function createSuccess()
     {
         return array(
-            array(
+            'get instance' => array(
                 'assert' => 'InstanceOf',
                 'callback' => function() {
-                    return $this->invoke('create', 'Book');
+                    return Factory::getComponent()->create('Book');
                 },
                 'expected' => 'Book'
             ),
-            array(
+            'primary key exists' => array(
                 'assert' => 'NotNull',
                 'callback' => function() {
-                    return $this->invoke('create', 'Book')->id;
+                    return Factory::getComponent()->create('Book')->id;
                 },
             ),
-            array(
+            'record exists' => array(
                 'assert' => 'Equals',
                 'callback' => function() {
-                    return $this->invoke('create', 'Book')->id;
+                    return Factory::getComponent()->create('Book')->id;
                 },
                 'expected' => function($result) {
                     return Book::model()->findByPk($result)->id;
                 }
             ),
-            'composite' => array(
+
+            // composite primary key
+            'composite primary key' => array(
                 'assert' => 'InstanceOf',
                 'callback' => function() {
-                    return $this->invoke('create', 'Composite', array('pk2' => '{{sequence(:Composite_pk2)}}'));
+                    return Factory::getComponent()->create('Composite', array('pk2' => '{{sequence(:Composite_pk2)}}'));
                 },
                 'expected' => 'Composite'
             ),
-            'composite2' => array(
+            'composite primary key' => array(
                 'assert' => 'Equals',
                 'callback' => function() {
-                    return $this->invoke('create', 'Composite', array('pk2' => '{{sequence(:Composite_pk2)}}'))->primaryKey;
+                    return Factory::getComponent()->create('Composite', array('pk2' => '{{sequence(:Composite_pk2)}}'))->primaryKey;
                 },
                 'expected' => function($result) {
                     return Composite::model()->findByPk($result)->primaryKey;
                 }
+            ),
+
+            // alias relation
+            'alias have relation' => array(
+                'assert' => 'InstanceOf',
+                'result' => function() {
+                    return Factory::getComponent()->create('Book', array(), 'Karamazov')->Author;
+                },
+                'expected' => 'Author'
+            ),
+            'alias relation is correct' => array(
+                'assert' => 'Equals',
+                'result' => function() {
+                    return Factory::getComponent()->create('Book', array(), 'Karamazov')->Author->name;
+                },
+                'expected' => 'Fyodor Dostoevsky'
             ),
         );
     }
