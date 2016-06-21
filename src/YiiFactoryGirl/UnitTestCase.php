@@ -77,7 +77,7 @@ abstract class UnitTestCase extends \CTestCase
         try {
             $parent  = new \ReflectionClass('PHPUnit_Framework_TestCase');
 
-            $privates = array('name', 'data', 'dependencyInput', 'expectedException', 'expectedExceptionMessage', 'expectedExceptionCode');
+            $privates = array('name', 'data', 'dependencyInput');
             $set = array();
             foreach ($privates as $propertyName) {
                 $property = $parent->getProperty($propertyName);
@@ -93,84 +93,12 @@ abstract class UnitTestCase extends \CTestCase
             $this->fail($e->getMessage());
         }
 
-        if ($set['name'] === NULL) {
-            throw new \PHPUnit_Framework_Exception(
-              'PHPUnit_Framework_TestCase::$name must not be NULL.'
-            );
+        $args = array_merge($set['data'], $set['dependencyInput']);
+        if (preg_match('/(Success|Fail)$/', $set['name'], $match)) {
+            $method->invokeArgs($this, $args);
+            return call_user_func_array(array($this, 'assert'.$match[0]), $args);
         }
 
-        try {
-            $args = array_merge($set['data'], $set['dependencyInput']);
-            if (preg_match('/Success$/', $set['name'])) {
-                $method->invokeArgs($this, $args);
-                $testResult = call_user_func_array(array($this, 'assertSuccess'), $args);
-            } elseif (preg_match('/Fail$/', $set['name'])) {
-                $testResult = call_user_func_array(array($this, 'assertFail'), $args);
-            } else {
-                $testResult = $method->invokeArgs($this, $args);
-            }
-        }
-
-        catch (\Exception $e) {
-            $checkException = FALSE;
-
-            if (is_string($set['expectedException'])) {
-                $checkException = TRUE;
-
-                if ($e instanceof \PHPUnit_Framework_Exception) {
-                    $checkException = FALSE;
-                }
-
-                $reflector = new \ReflectionClass($set['expectedException']);
-
-                if ($set['expectedException'] == 'PHPUnit_Framework_Exception' ||
-                    $reflector->isSubclassOf('\PHPUnit_Framework_Exception')) {
-                    $checkException = TRUE;
-                }
-            }
-
-            if ($checkException) {
-                $this->assertThat(
-                  $e,
-                  new \PHPUnit_Framework_Constraint_Exception(
-                    $set['expectedException']
-                  )
-                );
-
-                if (is_string($set['expectedExceptionMessage']) &&
-                    !empty($set['expectedExceptionMessage'])) {
-                    $this->assertThat(
-                      $e,
-                      new \PHPUnit_Framework_Constraint_ExceptionMessage(
-                        $set['expectedExceptionMessage']
-                      )
-                    );
-                }
-
-                if ($set['expectedExceptionCode'] !== NULL) {
-                    $this->assertThat(
-                      $e,
-                      new \PHPUnit_Framework_Constraint_ExceptionCode(
-                        $set['expectedExceptionCode']
-                      )
-                    );
-                }
-
-                return;
-            } else {
-                throw $e;
-            }
-        }
-
-        if ($set['expectedException'] !== NULL) {
-            $this->assertThat(
-              NULL,
-              new \PHPUnit_Framework_Constraint_Exception(
-                $set['expectedException']
-              )
-            );
-        }
-
-        return $testResult;
+        return parent::runTest();
     }
 }
