@@ -101,7 +101,7 @@ abstract class FactoryTestCase extends UnitTestCase
             return $this->repository[$name];
         }
 
-        throw new FactoryException("Unknown property '{$name}' for class '". get_class($this) ."'.");
+        throw new FactoryException("Unknown property '{$name}' for class '". __CLASS__ ."'.");
     }
 
     /**
@@ -114,11 +114,11 @@ abstract class FactoryTestCase extends UnitTestCase
      */
     public function __call($name, $args)
     {
-        if (Factory::isFactoryMethod($name)) {
+        if (Factory::isFactoryMethod($name) || is_callable(array('\YiiFactoryGirl\Factory', $name))) {
             return call_user_func_array(array(Factory::getComponent(), $name), $args);
         }
 
-        throw new FactoryException('Call to undefined method ' . get_class($this) . "::{$name}().");
+        throw new FactoryException('Call to undefined method ' . __CLASS__ . "::{$name}().");
     }
 
     /**

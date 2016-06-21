@@ -242,7 +242,8 @@ class Factory extends \CApplicationComponent
         }
 
         return $absolute ? self::$_files : array_map(function($file) {
-            return end(explode(DIRECTORY_SEPARATOR, $file));
+            $tmp = explode(DIRECTORY_SEPARATOR, $file);
+            return end($tmp);
         }, self::$_files);
     }
 
