@@ -9,13 +9,61 @@ namespace YiiFactoryGirl;
  */
 class FactoryData extends \CComponent
 {
-    public $className;
-    public $attributes;
-    public $aliases;
-    public $build;
-    public $relations;
-    public $tableName;
+    /**
+     * className
+     *
+     * @var string
+     */
+    private $className;
+
+    /**
+     * attributes
+     *
+     * @var array
+     */
+    private $attributes;
+
+    /**
+     * aliases
+     *
+     * @var array
+     */
+    private $aliases;
+
+    /**
+     * build
+     *
+     * @var object
+     */
+    private $build;
+
+    /**
+     * relations
+     *
+     * @var array
+     */
+    private $relations;
+
+    /**
+     * tableName
+     *
+     * @var string
+     */
+    private $tableName;
+
+    /**
+     * reflection
+     *
+     * @var \ReflectionClass
+     */
     private $reflection;
+
+    /**
+     * instantiateStrategy
+     *
+     * @var string
+     */
+    public $instantiateStrategy = 'newInstanceArgs';
 
     /**
      * __construct
@@ -115,7 +163,7 @@ class FactoryData extends \CComponent
      */
     private function instantiate()
     {
-        return $this->reflection->newInstanceArgs();
+        return $this->reflection->{$this->instantiateStrategy}(func_get_args());
     }
 
     /**
@@ -281,5 +329,18 @@ class FactoryData extends \CComponent
         unset($config['attributes']);
         $aliases = $config;
         return new self($className, $attributes, $aliases);
+    }
+
+    /**
+     * __get
+     *
+     * @return string
+     */
+    public function __get($name)
+    {
+        if (property_exists($this, $name)) {
+            return $this->$name;
+        }
+        throw new FactoryException('Unknown property ' . $name . ' in class ' . __CLASS__);
     }
 }
