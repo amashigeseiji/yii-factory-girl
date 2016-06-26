@@ -8,48 +8,11 @@ use YiiFactoryGirl\FactoryData;
 class FactoryDataTest extends YiiFactoryGirl\UnitTestCase
 {
     /**
-     * testFromFile
-     *
-     * @dataProvider fromFileSuccess
-     */
-    public function testFromFileSuccess()
-    {
-    }
-
-    /**
-     * @dataProvider getAttributeFromFileSuccess
-     */
-    public function testGetAttributesFromFileSuccess()
-    {
-    }
-
-    /**
-     * @dataProvider constructFail
-     */
-    public function testConstructFail()
-    {
-    }
-
-    /**
-     * @dataProvider instantiateSuccess
-     */
-    public function testInstantiateSuccess($assert, callable $callback, $expected = null)
-    {
-    }
-
-    /**
-     * @dataProvider normalizeAttributesSuccess
-     */
-    public function testNormalizeAttributesSuccess()
-    {
-    }
-
-    /**
-     * fromFileSuccess
+     * testFromFileSuccess
      *
      * @return array
      */
-    public function fromFileSuccess()
+    public function testFromFileSuccess()
     {
         $test = function($path) {
             return array(
@@ -71,11 +34,11 @@ class FactoryDataTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * getAttributeFromFileSuccess
+     * testGetAttributesFromFileSuccess
      *
      * @return array
      */
-    public function getAttributeFromFileSuccess()
+    public function testGetAttributesFromFileSuccess()
     {
         extract($this->path('Book'));
         return array(
@@ -98,11 +61,11 @@ class FactoryDataTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * constructFail
+     * testConstructFail
      *
-     * @return void
+     * @return array
      */
-    public function constructFail()
+    public function testConstructFail()
     {
         return array(
             'file does not exist' => array(
@@ -129,11 +92,11 @@ class FactoryDataTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * instantiateSuccess
+     * testInstantiateSuccess
      *
      * @return array
      */
-    public function instantiateSuccess()
+    public function testInstantiateSuccess()
     {
         $method = new ReflectionMethod('YiiFactoryGirl\FactoryData::instantiate');
         $method->setAccessible(true);
@@ -157,11 +120,11 @@ class FactoryDataTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * dataProvider for testNormalizeArguments
+     * testNormalizeAttributesSuccess
      *
      * @return array
      */
-    public function normalizeAttributesSuccess()
+    public function testNormalizeAttributesSuccess()
     {
         $method = new ReflectionMethod('YiiFactoryGirl\FactoryData::normalizeAttributes');
         $factory = new FactoryData('Book');

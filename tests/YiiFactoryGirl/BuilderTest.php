@@ -9,55 +9,11 @@ use YiiFactoryGirl\Builder;
 class BuilderTest extends YiiFactoryGirl\UnitTestCase
 {
     /**
-     * @dataProvider constructSuccess
-     */
-    public function testConstructSuccess($assert, callable $callback, $expected = null)
-    {
-    }
-
-    /**
-     * @dataProvider constructFail
-     */
-    public function testConstructFail($exception, callable $callback)
-    {
-    }
-
-    /**
-     * - Builder::build can instantiate FormModel
-     *
-     * @dataProvider buildSuccess
-     */
-    public function testBuildSuccess($assert, callable $callback, $expected = null)
-    {
-    }
-
-    /**
-     * @dataProvider buildFail
-     */
-    public function testBuildFail(array $exception, callable $callback)
-    {
-    }
-
-    /**
-     * @dataProvider getFactoryDataSuccess
-     */
-    public function testGetFactoryDataSuccess()
-    {
-    }
-
-    /**
-     * @dataProvider getTableNameSuccess
-     */
-    public function testGetTableNameSuccess($assert, callable $callback, $expected = null)
-    {
-    }
-
-    /**
-     * constructSuccess
+     * testConstructSuccess
      *
      * @return array
      */
-    public function constructSuccess()
+    public function testConstructSuccess()
     {
         return array(
             'class name is set' => array(
@@ -78,11 +34,11 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * constructFail
+     * testConstructFail
      *
      * @return array
      */
-    public function constructFail()
+    public function testConstructFail()
     {
         return array(
             'class not exist' => array(
@@ -95,14 +51,12 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * testBuildSuccess arguments
+     * testBuildSuccess
+     * - Builder::build can instantiate FormModel
      *
-     * define
-     *   construct: Builder constructor arguments
-     *   tests: test cases. [assert, build, get, expected] key is required.
      * @return array
      */
-    public function buildSuccess()
+    public function testBuildSuccess()
     {
         return array(
             'Build ActiveRecord without arguments' => array(
@@ -187,11 +141,11 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * buildFail
+     * testBuildFail
      *
      * @return array
      */
-    public function buildFail()
+    public function testBuildFail()
     {
         return array(
             'unknown attribute is given' => array(
@@ -216,11 +170,11 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * getFactoryDataSuccess
+     * testGetFactoryDataSuccess
      *
      * @return array
      */
-    public function getFactoryDataSuccess()
+    public function testGetFactoryDataSuccess()
     {
         return array(
             'get FactoryData instance when factory file exists' => array(
@@ -255,11 +209,11 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * getTableNameSuccess
+     * testGetTableNameSuccess
      *
      * @return array
      */
-    public function getTableNameSuccess()
+    public function testGetTableNameSuccess()
     {
         return array(
             'normal' => array(

@@ -95,10 +95,20 @@ abstract class UnitTestCase extends \CTestCase
 
         $args = array_merge($set['data'], $set['dependencyInput']);
         if (preg_match('/(Success|Fail)$/', $set['name'], $match)) {
-            $method->invokeArgs($this, $args);
-            return call_user_func_array(array($this, 'assert'.$match[0]), $args);
+            $data = $method->invokeArgs($this, $args);
+            foreach ($data as $testName => $test) {
+                try {
+                    call_user_func_array(array($this, 'assert'.$match[0]), $test);
+                } catch (\PHPUnit_Framework_ExpectationFailedException $e) {
+                    $reflection = new \ReflectionClass($e);
+                    $message = $reflection->getProperty('message');
+                    $message->setAccessible(true);
+                    $message->setValue($e, 'TEST CASE #' . $testName . ': ' . $e->getMessage());
+                    throw $e;
+                }
+            }
+        } else {
+            return parent::runTest();
         }
-
-        return parent::runTest();
     }
 }

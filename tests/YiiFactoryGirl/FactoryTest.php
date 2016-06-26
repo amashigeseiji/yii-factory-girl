@@ -9,6 +9,11 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
 {
     private static $component = null;
 
+    public static function setUpBeforeClass()
+    {
+        YiiFactoryGirl\Factory::getComponent()->prepare();
+    }
+
     public function setUp()
     {
         if (self::$component && self::$component->connectionID !== 'db') {
@@ -17,120 +22,11 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * @dataProvider getFilesSuccess
-     */
-    public function testGetFilesSuccess()
-    {
-    }
-
-    /**
-     * @dataProvider prepareWithInitSuccess
-     */
-    public function testPrepareWithInitSuccess()
-    {
-    }
-
-    /**
-     * @dataProvider getDbConnectionSuccess
-     */
-    public function testGetDbConnectionSuccess()
-    {
-    }
-
-    /**
-     * @dataProvider getDbConnectionFail
-     */
-    public function testGetDbConnectionFail($exception, callable $callback)
-    {
-    }
-
-    /**
-     * @dataProvider prepareSuccess
-     */
-    public function testPrepareSuccess()
-    {
-    }
-
-    /**
-     * @dataProvider truncateTableSuccess
-     */
-    public function testTruncateTablesSuccess()
-    {
-    }
-
-    /**
-     * @dataProvider truncateTableFail
-     */
-    public function testTruncateTableFail($exception, callable $callback)
-    {
-    }
-
-    /**
-     * @dataProvider flushSuccess
-     */
-    public function testFlush()
-    {
-    }
-
-    /**
-     * @dataProvider buildSuccess
-     */
-    public function testBuildSuccess($assert, callable $callback, $expected = null)
-    {
-    }
-
-    /**
-     * @dataProvider buildFail
-     */
-    public function testBuildFail($exception, callable $callback)
-    {
-    }
-
-    /**
-     * @dataProvider createSuccess
-     */
-    public function testCreateSuccess($assert, $callback, $expected = null)
-    {
-    }
-
-    /**
-     * @dataProvider createFail
-     */
-    public function testCreateFail()
-    {
-    }
-
-    /**
-     * @dataProvider isFactoryMethodSuccess
-     */
-    public function testIsFactoryMethodSuccess()
-    {
-        $reflection = new ReflectionClass('YiiFactoryGirl\Factory');
-        $property = $reflection->getProperty('_factoryMethods');
-        $property->setAccessible(true);
-        $property->setValue(null);
-    }
-
-    /**
-     * @dataProvider emulatedMethodSuccess
-     */
-    public function testEmulatedMethodSuccess()
-    {
-    }
-
-    /**
-     * @dataProvider emulateMethodCallFail
-     */
-    public function testEmulateMethodCallFail()
-    {
-    }
-
-    /**
-     * getFilesSuccess
+     * testGetFilesSuccess
      *
      * @return array
      */
-    public function getFilesSuccess()
+    public function testGetFilesSuccess()
     {
         $fileNames = $this->getComponent()->getFiles(false); // not absolute path
         return array(
@@ -144,11 +40,11 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * prepareWithInitSuccess
+     * testPrepareWithInitSuccess
      *
      * @return array
      */
-    public function prepareWithInitSuccess()
+    public function testPrepareWithInitSuccess()
     {
         return array(
             array(
@@ -165,11 +61,11 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * getDbConnectionSuccess
+     * testGetDbConnectionSuccess
      *
      * @return array
      */
-    public function getDbConnectionSuccess()
+    public function testGetDbConnectionSuccess()
     {
         return array(
             array(
@@ -183,11 +79,11 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * getDbConnectionFail
+     * testGetDbConnectionFail
      *
      * @return array
      */
-    public function getDbConnectionFail()
+    public function testGetDbConnectionFail()
     {
         return array(
             array(
@@ -205,11 +101,11 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * prepareSuccess
+     * testPrepareSuccess
      *
      * @return array
      */
-    public function prepareSuccess()
+    public function testPrepareSuccess()
     {
         $create = function() {
             foreach (array('Book', 'Author', 'Publisher', 'HaveNoRelation') as $class) {
@@ -234,11 +130,11 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * truncateTableSuccess
+     * testTruncateTablesSuccess
      *
      * @return array
      */
-    public function truncateTableSuccess()
+    public function testTruncateTablesSuccess()
     {
         return array(
             array(
@@ -256,11 +152,11 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * truncateTableFail
+     * testTruncateTableFail
      *
      * @return array
      */
-    public function truncateTableFail()
+    public function testTruncateTableFail()
     {
         return array(
             array(
@@ -273,11 +169,11 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * flushSuccess
+     * testFlushSuccess
      *
      * @return array
      */
-    public function flushSuccess()
+    public function testFlushSuccess()
     {
         return array(
             array(
@@ -297,11 +193,11 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * buildSuccess
+     * testBuildSuccess
      *
      * @return array
      */
-    public function buildSuccess()
+    public function testBuildSuccess()
     {
         return array(
             array(
@@ -329,11 +225,11 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * buildFail
+     * testBuildFail
      *
      * @return array
      */
-    public function buildFail()
+    public function testBuildFail()
     {
         return array(
             array(
@@ -352,11 +248,11 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * createSuccess
+     * testCreateSuccess
      *
      * @return array
      */
-    public function createSuccess()
+    public function testCreateSuccess()
     {
         // HAS MANY
         $hasManyBooksAuthor = $this->getComponent()->AuthorFactory(array('name' => 'Fyodor Dostoevsky', 'relations' => array(
@@ -547,11 +443,11 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * createFail
+     * testCreateFail
      *
      * @return array
      */
-    public function createFail()
+    public function testCreateFail()
     {
         return array(
             'Fail if not ActiveRecord' => array(
@@ -576,16 +472,20 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * isFactoryMethodSuccess
+     * testIsFactoryMethodSuccess
      *
      * @return array
      */
-    public function isFactoryMethodSuccess()
+    public function testIsFactoryMethodSuccess()
     {
         $assert = function($assert, $name) {
             return array(
                 'assert' => $assert,
                 'callback' => function() use($name) {
+                    $reflection = new ReflectionClass('YiiFactoryGirl\Factory');
+                    $property = $reflection->getProperty('_factoryMethods');
+                    $property->setAccessible(true);
+                    $property->setValue(null);
                     return $this->getComponent()->isFactoryMethod($name);
                 }
             );
@@ -607,11 +507,11 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * emulatedMethodSuccess
+     * testEmulatedMethodSuccess
      *
      * @return array
      */
-    public function emulatedMethodSuccess()
+    public function testEmulatedMethodSuccess()
     {
         return array(
             'without arguments' => array(
@@ -632,11 +532,11 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * emulateMethodCallFail
+     * testEmulateMethodCallFail
      *
      * @return array
      */
-    public function emulateMethodCallFail()
+    public function testEmulateMethodCallFail()
     {
         return array(
             array(
@@ -647,6 +547,7 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
             )
         );
     }
+
 
     /* UTILITIES */
 
