@@ -84,17 +84,15 @@ class Creator
      * @return void
      * @throws YiiFactoryGirl\FactoryException
      */
-    private static function createRelation(\CActiveRecord &$activeRecord, $name, $args = array(), $alias = null)
+    private static function createRelation(\CActiveRecord &$activeRecord, $name, array $args = array(), $alias = null)
     {
-        if (is_null($args)) {
-            $args = array();
+        if (!$relation = $activeRecord->getActiveRelation($name)) {
+            return;
         }
 
-        if ($relation = $activeRecord->getActiveRelation($name)) {
-            $factoryMethod = $relation->className . Factory::FACTORY_METHOD_SUFFIX;
-            switch ($relation){
+        switch ($relation) {
             case $relation instanceof \CBelongsToRelation:
-                $related = Factory::getComponent()->$factoryMethod($args, $alias);
+                $related = Factory::getComponent()->create($relation->className, $args, $alias);
                 // FIXME If primary key name equals foreign key name, it will causes duplicate entry.
                 if ($relation->foreignKey === $activeRecord->tableSchema->primaryKey && $activeRecord->getPrimaryKey() != $related->getPrimaryKey()) {
                     throw new FactoryException('Primary key and foreign key has same name, and both values are not same. Please set primary key manually not to cause duplicate entry.');
@@ -106,7 +104,7 @@ class Creator
             case $relation instanceof \CHasOneRelation:
             case $relation instanceof \CHasManyRelation:
                 $args[$relation->foreignKey] = $activeRecord->primaryKey;
-                $result = Factory::getComponent()->$factoryMethod($args, $alias);
+                $result = Factory::getComponent()->create($relation->className, $args, $alias);
                 if ($relation instanceof \CHasOneRelation) {
                     $index = false;
                 } else {
@@ -121,7 +119,6 @@ class Creator
             default:
                 throw new FactoryException('Relation type ' . get_class($relation) . ' is unsupported.');
                 break;
-            }
         }
     }
 }

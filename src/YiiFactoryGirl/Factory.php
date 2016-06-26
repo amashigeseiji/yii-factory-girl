@@ -80,10 +80,7 @@ class Factory extends \CApplicationComponent
         if ($this->basePath) {
             self::$_basePath = \Yii::getPathOfAlias($this->basePath);
         }
-        if ($this->connectionID) {
-            self::$_connectionID = $this->connectionID;
-        }
-
+        self::$_connectionID = $this->connectionID;
         self::setBuilders();
 
         $this->prepare();
@@ -115,17 +112,11 @@ class Factory extends \CApplicationComponent
     public function prepare()
     {
         $initFile = self::getBasePath() . DIRECTORY_SEPARATOR . $this->initScript;
-
-        $this->checkIntegrity(false);
-
         if (is_file($initFile)) {
             require($initFile);
         } else {
-            foreach (self::$_tables as $tbl) {
-                $this->resetTable($tbl);
-            }
+            $this->flush();
         }
-        $this->checkIntegrity(true);
     }
 
     /**
@@ -134,9 +125,11 @@ class Factory extends \CApplicationComponent
      */
     public function flush()
     {
+        $this->checkIntegrity(false);
         foreach (self::$_tables as $tbl) {
             $this->resetTable($tbl);
         }
+        $this->checkIntegrity(true);
         Sequence::resetAll();
     }
 
@@ -179,11 +172,9 @@ class Factory extends \CApplicationComponent
      */
     public function truncateTable($tableName)
     {
-        $db = $this->getDbConnection();
-        $schema = $db->getSchema();
+        $schema = $this->getDbConnection()->getSchema();
         if (($table = $schema->getTable($tableName)) !== null) {
-            $db->createCommand('DELETE FROM ' . $table->rawName)->execute();
-            $schema->resetSequence($table, 1);
+            $this->getDbConnection()->createCommand()->truncateTable($table->name);
         } else {
             throw new \CException("Table '$tableName' does not exist.");
         }
@@ -300,7 +291,7 @@ class Factory extends \CApplicationComponent
      *
      * @return void
      */
-    public static function setBuilders()
+    private static function setBuilders()
     {
         $suffixLen = strlen(self::INIT_SCRIPT_SUFFIX);
         foreach (self::getFiles(false) as $fileName) {
@@ -317,7 +308,7 @@ class Factory extends \CApplicationComponent
      * @param string $class
      * @return void
      */
-    public static function setBuilder($class)
+    private static function setBuilder($class)
     {
         $builder = new Builder($class);
         self::$_builders[$class] = $builder;

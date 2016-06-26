@@ -7,7 +7,7 @@ namespace YiiFactoryGirl;
  * Used to represent all properties of a file under the factory base path
  * @package YiiFactoryGirl
  */
-class FactoryData extends \CComponent
+class FactoryData
 {
     /**
      * className
