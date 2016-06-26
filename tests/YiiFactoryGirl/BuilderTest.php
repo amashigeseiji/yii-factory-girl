@@ -39,20 +39,6 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * @dataProvider createSuccess
-     */
-    public function testCreateSuccess($assert, callable $callback, $expected = null)
-    {
-    }
-
-    /**
-     * @dataProvider createFail
-     */
-    public function testCreateFail()
-    {
-    }
-
-    /**
      * @dataProvider getFactoryDataSuccess
      */
     public function testGetFactoryDataSuccess()
@@ -226,56 +212,6 @@ class BuilderTest extends YiiFactoryGirl\UnitTestCase
                     (new Builder('NotExistClass'))->build();
                 }
             )
-        );
-    }
-
-    /**
-     * createSuccess
-     *
-     * @return array
-     */
-    public function createSuccess()
-    {
-        return array(
-            'return CActiveRecord instance' => array(
-                'assert' => 'InstanceOf',
-                'callback' => function() {
-                    return (new Builder('Book'))->create();
-                },
-                'expected' => 'CActiveRecord',
-            ),
-            'primary key is set' => array(
-                'assert' => 'NotNull',
-                'callback' => function() {
-                    return (new Builder('Book'))->create()->id;
-                },
-            ),
-            'record exists' => array(
-                'assert' => 'NotNull',
-                'callback' => function() {
-                    return (new Builder('Composite'))->create(array('pk2' => YiiFactoryGirl\Sequence::get('{{sequence}}')))->primaryKey;
-                },
-                'expected' => function($result) {
-                    return Composite::model()->findByPk($result)->primaryKey;
-                }
-            ),
-        );
-    }
-
-    /**
-     * createFail
-     *
-     * @return array
-     */
-    public function createFail()
-    {
-        return array(
-            array(
-                'exception' => array('YiiFactoryGirl\FactoryException', 'BookForm is not ActiveRecord.'),
-                'callback'  => function() {
-                    (new Builder('BookForm'))->create();
-                }
-            ),
         );
     }
 

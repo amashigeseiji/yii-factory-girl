@@ -16,26 +16,25 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
         }
     }
 
-    public function testGetFiles()
+    /**
+     * @dataProvider getFilesSuccess
+     */
+    public function testGetFilesSuccess()
     {
-        $fileNames = YiiFactoryGirl\Factory::getFiles(false); // not absolute path
-        foreach (YiiFactoryGirl\Factory::getFiles() as $path) {
-            $this->assertTrue(file_exists($path));
-            $this->assertTrue(in_array(end(explode(DIRECTORY_SEPARATOR, $path)), $fileNames));
-        }
     }
 
-    public function testPrepareWithInit()
+    /**
+     * @dataProvider prepareWithInitSuccess
+     */
+    public function testPrepareWithInitSuccess()
     {
-        $this->invoke('create', 'Book');
-        $this->assertGreaterThan(0, Book::model()->count());
-        $this->getComponent(array(), true);
-        $this->assertEquals(0, Book::model()->count());
     }
 
-    public function testGetDbConnection()
+    /**
+     * @dataProvider getDbConnectionSuccess
+     */
+    public function testGetDbConnectionSuccess()
     {
-        $this->assertInstanceOf('CDbConnection', $this->invoke('getDbConnection'));
     }
 
     /**
@@ -45,24 +44,31 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
     {
     }
 
-    public function testPrepare()
+    /**
+     * @dataProvider prepareSuccess
+     */
+    public function testPrepareSuccess()
     {
-        foreach (array('Book', 'Author', 'Publisher', 'HaveNoRelation') as $class) {
-            $this->invoke('create', $class);
-            $this->invoke('create', $class);
-        }
-        $this->assertGreaterThan(0, Book::model()->count());
-        $this->getComponent()->prepare();
-        $this->assertEquals(0, Book::model()->count());
-        $this->assertEquals(0, Author::model()->count());
-        $this->assertEquals(0, HaveNoRelation::model()->count());
-        $this->assertEquals(0, Publisher::model()->count());
+    }
+
+    /**
+     * @dataProvider truncateTableSuccess
+     */
+    public function testTruncateTablesSuccess()
+    {
     }
 
     /**
      * @dataProvider truncateTableFail
      */
-    public function testTruncateTableFailIfTableNotExists($exception, callable $callback)
+    public function testTruncateTableFail($exception, callable $callback)
+    {
+    }
+
+    /**
+     * @dataProvider flushSuccess
+     */
+    public function testFlush()
     {
     }
 
@@ -83,25 +89,15 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
     /**
      * @dataProvider createSuccess
      */
-    public function testCreateSuccess($assert, callable $callback, $expected = null)
+    public function testCreateSuccess($assert, $callback, $expected = null)
     {
     }
 
-    public function testTruncateTables()
+    /**
+     * @dataProvider createFail
+     */
+    public function testCreateFail()
     {
-        $this->invoke('create', 'Book');
-        $this->invoke('checkIntegrity', false);
-        $this->invoke('truncateTables');
-        $this->assertEquals(0, Book::model()->count());
-    }
-
-    public function testFlush()
-    {
-        $this->invoke('create', 'Book');
-        $this->invoke('create', 'Author');
-        $this->invoke('flush');
-        $this->assertEquals(0, Book::model()->count());
-        $this->assertEquals(0, Author::model()->count());
     }
 
     /**
@@ -123,11 +119,67 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * @expectedException CException
+     * @dataProvider emulateMethodCallFail
      */
-    public function testNotCallable()
+    public function testEmulateMethodCallFail()
     {
-        Factory::getComponent()->HogeFugaFactory();
+    }
+
+    /**
+     * getFilesSuccess
+     *
+     * @return array
+     */
+    public function getFilesSuccess()
+    {
+        $fileNames = $this->getComponent()->getFiles(false); // not absolute path
+        return array(
+            'file exists' => array(
+                'assert' => 'True',
+                'result' => function() {
+                    return file_exists($this->getComponent()->getBasePath() . '/BookFactory.php');
+                }
+            )
+        );
+    }
+
+    /**
+     * prepareWithInitSuccess
+     *
+     * @return array
+     */
+    public function prepareWithInitSuccess()
+    {
+        return array(
+            array(
+                'assert' => 'Equals',
+                'result' => function() {
+                    $this->getComponent()->create('Book');
+                    $this->assertGreaterThan(0, Book::model()->count());
+                    $this->getComponent(array(), true);
+                    return Book::model()->count();
+                },
+                'expect' => 0
+            )
+        );
+    }
+
+    /**
+     * getDbConnectionSuccess
+     *
+     * @return array
+     */
+    public function getDbConnectionSuccess()
+    {
+        return array(
+            array(
+                'assert' => 'InstanceOf',
+                'result' => function() {
+                    return $this->getComponent()->getDbConnection();
+                },
+                'expect' => 'CDbConnection'
+            )
+        );
     }
 
     /**
@@ -153,6 +205,57 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
+     * prepareSuccess
+     *
+     * @return array
+     */
+    public function prepareSuccess()
+    {
+        $create = function() {
+            foreach (array('Book', 'Author', 'Publisher', 'HaveNoRelation') as $class) {
+                $this->getComponent()->create($class);
+            }
+        };
+
+        return array(
+            array(
+                'assert' => 'Equals',
+                'result' => function() use ($create) {
+                    $create();
+                    $this->getComponent()->prepare();
+                    return Book::model()->count()
+                        + Author::model()->count()
+                        + HaveNoRelation::model()->count()
+                        + Publisher::model()->count();
+                },
+                'expect' => 0
+            )
+        );
+    }
+
+    /**
+     * truncateTableSuccess
+     *
+     * @return array
+     */
+    public function truncateTableSuccess()
+    {
+        return array(
+            array(
+                'assert' => 'Equals',
+                'result' => function() {
+                    $this->getComponent()->create('Book');
+                    $this->getComponent()->checkIntegrity(false);
+                    $this->getComponent()->truncateTables();
+                    $this->getComponent()->checkIntegrity(true);
+                    return Book::model()->count();
+                },
+                'expect' => 0
+            )
+        );
+    }
+
+    /**
      * truncateTableFail
      *
      * @return array
@@ -163,9 +266,33 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
             array(
                 'exception' => array('CException', "Table 'NotExist' does not exist"),
                 'callback' => function() {
-                    $this->invoke('truncateTable', 'NotExist');
+                    $this->getComponent()->truncateTable('NotExist');
                 }
             )
+        );
+    }
+
+    /**
+     * flushSuccess
+     *
+     * @return array
+     */
+    public function flushSuccess()
+    {
+        return array(
+            array(
+                'assert' => 'Equals',
+                'result' => function() {
+                    $this->getComponent()->create('Book');
+                    $this->getComponent()->create('Author');
+                    $this->getComponent()->checkIntegrity(false);
+                    $this->getComponent()->flush();
+                    $this->getComponent()->checkIntegrity(true);
+                    return Book::model()->count()
+                        + Author::model()->count();
+                },
+                'expect' => 0
+            ),
         );
     }
 
@@ -231,42 +358,67 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
      */
     public function createSuccess()
     {
+        // HAS MANY
+        $hasManyBooksAuthor = $this->getComponent()->AuthorFactory(array('name' => 'Fyodor Dostoevsky', 'relations' => array(
+            'Books' => array(
+                array('name' => 'Crime and Punishment'),
+                array('name' => 'Notes from Underground'),
+                array('id' => '45', 'name' => 'The Brothers Karamazov'),
+            )
+        )));
+        $bookId45 = Book::model()->findByPk(45);
+
+        // RECURSIVE
+        $recursive = $this->getComponent()->BookFactory(array('relations' => array(
+            'Colophon' => array('relations' => array('PublishedBy'))
+        )));
+
+        // abbreviated
+        $publisher = $this->getComponent()->PublisherFactory(array(
+            'name' => 'O\'Reilly',
+            'Series' => array(
+                'name' => 'Hacks',
+                'Books' => array(
+                    array('name' => 'Raspberry Pi Hacks'),
+                    array('name' => 'HTML5 Hacks'),
+                )
+            )
+        ));
+
         return array(
             'get instance' => array(
                 'assert' => 'InstanceOf',
                 'callback' => function() {
-                    return Factory::getComponent()->create('Book');
+                    return $this->getComponent()->create('Book');
                 },
                 'expected' => 'Book'
             ),
             'primary key exists' => array(
                 'assert' => 'NotNull',
                 'callback' => function() {
-                    return Factory::getComponent()->create('Book')->id;
+                    return $this->getComponent()->create('Book')->id;
                 },
             ),
             'record exists' => array(
-                'assert' => 'Equals',
+                'assert' => 'NotNull',
                 'callback' => function() {
-                    return Factory::getComponent()->create('Book')->id;
+                    $id = $this->getComponent()->create('Book')->id;
+                    return Book::model()->findByPk($id);
                 },
-                'expected' => function($result) {
-                    return Book::model()->findByPk($result)->id;
-                }
             ),
 
             // composite primary key
             'composite primary key' => array(
                 'assert' => 'InstanceOf',
                 'callback' => function() {
-                    return Factory::getComponent()->create('Composite', array('pk2' => '{{sequence(:Composite_pk2)}}'));
+                    return $this->getComponent()->create('Composite', array('pk2' => '{{sequence(:Composite_pk2)}}'));
                 },
                 'expected' => 'Composite'
             ),
             'composite primary key' => array(
                 'assert' => 'Equals',
                 'callback' => function() {
-                    return Factory::getComponent()->create('Composite', array('pk2' => '{{sequence(:Composite_pk2)}}'))->primaryKey;
+                    return $this->getComponent()->create('Composite', array('pk2' => '{{sequence(:Composite_pk2)}}'))->primaryKey;
                 },
                 'expected' => function($result) {
                     return Composite::model()->findByPk($result)->primaryKey;
@@ -277,16 +429,148 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
             'alias have relation' => array(
                 'assert' => 'InstanceOf',
                 'result' => function() {
-                    return Factory::getComponent()->create('Book', array(), 'Karamazov')->Author;
+                    return $this->getComponent()->create('Book', array(), 'Karamazov')->Author;
                 },
                 'expected' => 'Author'
             ),
             'alias relation is correct' => array(
                 'assert' => 'Equals',
                 'result' => function() {
-                    return Factory::getComponent()->create('Book', array(), 'Karamazov')->Author->name;
+                    return $this->getComponent()->create('Book', array(), 'Karamazov')->Author->name;
                 },
                 'expected' => 'Fyodor Dostoevsky'
+            ),
+
+            // relation
+            'default have no relation' => array(
+                'assert' => 'Null',
+                'result' => function() {
+                    return $this->getComponent()->BookFactory()->Author;
+                }
+            ),
+
+            // relation: BELONGS_TO
+            'BELONGS TO: instanceof Author' => array(
+                'assert' => 'InstanceOf',
+                'result' => function() {
+                    return $this->getComponent()->BookFactory(array('relations' => array(
+                        array('Author', array('name' => 'Dazai Osamu'))
+                    )))->Author;
+                },
+                'expected' => 'Author',
+            ),
+            'BELONGS TO: related record name is correct' => array(
+                'assert' => 'Equals',
+                'result' => function() {
+                    return $this->getComponent()->BookFactory(array('relations' => array(
+                        array('Author', array('name' => 'Dazai Osamu'))
+                    )))->Author->name;
+                },
+                'expected' => 'Dazai Osamu',
+            ),
+
+            // relation: HAS_MANY
+            'HAS MANY: books count is correct' => array(
+                'assert' => 'Count',
+                'result' => $hasManyBooksAuthor->Books,
+                'expected' => 3
+            ),
+            'HAS MANY: author name is correct' => array(
+                'assert' => 'Equals',
+                'result' => $hasManyBooksAuthor->name,
+                'expected' => 'Fyodor Dostoevsky'
+            ),
+            'HAS MANY: book name is correct' => array(
+                'assert' => 'Equals',
+                'result' => $bookId45->name,
+                'expected' => 'The Brothers Karamazov'
+            ),
+            'HAS MANY: book\'s Author id is correct' => array(
+                'assert' => 'Equals',
+                'result' => $bookId45->Author_id,
+                'expected' => $hasManyBooksAuthor->id
+            ),
+
+            // relation: HAS_ONE
+            'HAS ONE' => array(
+                'assert' => 'InstanceOf',
+                'result' => function() {
+                    return $this->getComponent()->BookFactory(array('relations' => array('Colophon')))->Colophon;
+                },
+                'expected' => 'Colophon'
+            ),
+
+            // relation: recursive
+            'RECURSIVE relation' => array(
+                'assert' => 'Equals',
+                'result' => $recursive->Colophon->Publisher_id,
+                'expected' => $recursive->Colophon->PublishedBy->id
+            ),
+
+            // alias in relation
+            'Alias in relation' => array(
+                'assert' => 'Equals',
+                'result' => function() {
+                    return $this->getComponent()->AuthorFactory(array('relations' => array(
+                        'Books.testAlias'
+                    )), null, true)->Books[0]->name;
+                },
+                'expected' => 'inserted by alias'
+            ),
+
+            // abbreviate format
+            'ABBREVIATED FORMAT: Instance type is correct' => array(
+                'assert' => 'InstanceOf',
+                'result' => $publisher->Series[0],
+                'expected' => 'Series'
+            ),
+            'ABBREVIATED FORMAT: series name is correct' => array(
+                'assert' => 'Equals',
+                'result' => $publisher->Series[0]->name,
+                'expected' => 'Hacks'
+            ),
+            'ABBREVIATED FORMAT: series books count is correct' => array(
+                'assert' => 'Count',
+                'result' => $publisher->Series[0]->Books,
+                'expected' => 2
+            ),
+            'ABBREVIATED FORMAT: series books name is correct' => array(
+                'assert' => 'Equals',
+                'result' => function() use ($publisher) {
+                    return array_map(function($book) {
+                        return $book->name;
+                    }, $publisher->Series[0]->Books);
+                },
+                'expected' => array('Raspberry Pi Hacks', 'HTML5 Hacks')
+            ),
+        );
+    }
+
+    /**
+     * createFail
+     *
+     * @return array
+     */
+    public function createFail()
+    {
+        return array(
+            'Fail if not ActiveRecord' => array(
+                'exception' => array('YiiFactoryGirl\FactoryException', 'BookForm is not ActiveRecord.'),
+                'callback'  => function() {
+                    $this->getComponent()->create('BookForm');
+                }
+            ),
+            'Fail if primary key and foreign key has same name' => array(
+                'exception' => array('YiiFactoryGirl\FactoryException', 'Primary key and foreign key has same name'),
+                'callback'  => function() {
+                    $this->getComponent()->checkIntegrity(false);
+                    $this->getComponent()->resetTable('SameIdToAuthor');
+                    $this->getComponent()->resetTable('Author');
+                    $this->getComponent()->checkIntegrity(true);
+                    $this->getComponent()->SameIdToAuthorFactory(array('id' => 1, 'relations' => array(
+                        'Author' =>  array('id' => 2)
+                    )), null, true);
+                }
             ),
         );
     }
@@ -302,14 +586,14 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
             return array(
                 'assert' => $assert,
                 'callback' => function() use($name) {
-                    return YiiFactoryGirl\Factory::isFactoryMethod($name);
+                    return $this->getComponent()->isFactoryMethod($name);
                 }
             );
         };
 
         $factoryMethodsCallable = array_map(function($factory) use ($assert) {
             return $assert('True', explode('.', $factory)[0]);
-        }, YiiFactoryGirl\Factory::getFiles(false));
+        }, $this->getComponent()->getFiles(false));
 
         return array_merge(
             $factoryMethodsCallable,
@@ -330,23 +614,41 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
     public function emulatedMethodSuccess()
     {
         return array(
-            array(
+            'without arguments' => array(
                 'assert' => 'InstanceOf',
                 'callback' => function() {
-                    return Factory::getComponent()->HaveNoRelationFactory();
+                    return $this->getComponent()->HaveNoRelationFactory();
                 },
                 'expected' => 'HaveNoRelation'
             ),
-            array(
+            'parameter given' => array(
                 'assert' => 'Equals',
                 'callback' => function() {
-                    return Factory::getComponent()->HaveNoRelationFactory(array('name' => 'hoge'))->name;
+                    return $this->getComponent()->HaveNoRelationFactory(array('name' => 'hoge'))->name;
                 },
                 'expected' => 'hoge'
             ),
         );
     }
 
+    /**
+     * emulateMethodCallFail
+     *
+     * @return array
+     */
+    public function emulateMethodCallFail()
+    {
+        return array(
+            array(
+                'exception' => array('CException'),
+                'callback'  => function() {
+                    $this->getComponent()->HogeFugaFactory();
+                }
+            )
+        );
+    }
+
+    /* UTILITIES */
 
     /**
      * resetComponent
