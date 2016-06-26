@@ -53,23 +53,6 @@ class Builder
     }
 
     /**
-     * create
-     *
-     * @param array $attributes
-     * @param string $alias
-     * @return \CActiveRecord
-     * @throws YiiFactoryGirl\FactoryException
-     */
-    public function create($attributes = array(), $alias = null)
-    {
-        if (!$this->isActiveRecord()) {
-            throw new FactoryException($this->class.' is not ActiveRecord.');
-        }
-        $this->factoryData->build($attributes, $alias);
-        return Creator::create($this->factoryData->build, $this->factoryData->relations);
-    }
-
-    /**
      * setFactoryData
      *
      * @return void

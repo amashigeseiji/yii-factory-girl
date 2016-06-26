@@ -223,10 +223,16 @@ class Factory extends \CApplicationComponent
      * @param array $args
      * @param null $alias
      * @return \CActiveRecord
+     * @throws YiiFactoryGirl\FactoryException
      */
     public function create($class, array $args = array(), $alias = null)
     {
-        return $this->getBuilder($class)->create($args, $alias);
+        $builder = $this->getBuilder($class);
+        if (!$builder->isActiveRecord()) {
+            throw new FactoryException($class . ' is not ActiveRecord.');
+        }
+        $builder->build($args, $alias);
+        return Creator::create($builder->getFactoryData()->build, $builder->getFactoryData()->relations);
     }
 
     /**
