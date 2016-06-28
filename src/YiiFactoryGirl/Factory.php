@@ -49,27 +49,21 @@ class Factory extends \CApplicationComponent
     public $factoryFileSuffix = 'Factory';
 
     /**
-     * @var \CDbConnection
+     * db
+     *
+     * @var YiiFactoryGirl\Db
      */
-    protected static $_db;
+    protected $db;
 
     /**
-     * factory files
-     *
-     * @var array
+     * static properties
      */
     protected static $_files = array();
-
-    /**
-     * _basePath
-     *
-     * @var string
-     */
     protected static $_basePath = null;
-    protected static $_connectionID = 'db';
-    protected static $_tables = array();
     protected static $_builders = array();
     protected static $_factoryMethods = null;
+    protected static $_reflectionMethods = null;
+    protected static $_callable = null;
 
     /**
      * Initializes this application component.
@@ -80,28 +74,31 @@ class Factory extends \CApplicationComponent
         if ($this->basePath) {
             self::$_basePath = \Yii::getPathOfAlias($this->basePath);
         }
-        self::$_connectionID = $this->connectionID;
-        self::setBuilders();
+        $this->db = new Db($this->connectionID, $this->schemas);
+        $this->setBuilders();
 
         $this->prepare();
     }
 
     /**
-     * Returns the database connection used to load factories.
-     * @throws \CException if {@link connectionID} application component is invalid
-     * @return \CDbConnection the database connection
+     * getDbConnection
+     *
+     * @return \CDbConnection
+     * @see YiiFactoryGirl\Db::getConnection
      */
-    public static function getDbConnection()
+    public function getDbConnection()
     {
-        if (self::$_db === null) {
-            $db = \Yii::app()->getComponent(self::$_connectionID);
-            if (!$db instanceof \CDbConnection) {
-                throw new \CException(\Yii::t(self::LOG_CATEGORY, '\YiiFactoryGirl\Factory.connectionID "{id}" is invalid. Please make sure it refers to the ID of a CDbConnection application component.',
-                    array('{id}' => self::$_connectionID)));
-            }
-            self::$_db = $db;
-        }
-        return self::$_db;
+        return $this->db->getConnection();
+    }
+
+    /**
+     * getDb
+     *
+     * @return YiiFactoryGirl\Db
+     */
+    public function getDb()
+    {
+        return $this->db;
     }
 
     /**
@@ -111,8 +108,7 @@ class Factory extends \CApplicationComponent
      */
     public function prepare()
     {
-        $initFile = self::getBasePath() . DIRECTORY_SEPARATOR . $this->initScript;
-        if (is_file($initFile)) {
+        if ($initFile = self::getFilePath('init')) {
             require($initFile);
         } else {
             $this->flush();
@@ -120,16 +116,11 @@ class Factory extends \CApplicationComponent
     }
 
     /**
-     * Clean up the database records created by calling Factory->create()
-     * Should be called in tearDown() method in tests to avoid side effects.
+     * @see YiiFactoryGirl\Db::flush
      */
     public function flush()
     {
-        $this->checkIntegrity(false);
-        foreach (self::$_tables as $tbl) {
-            $this->resetTable($tbl);
-        }
-        $this->checkIntegrity(true);
+        $this->db->flush();
         Sequence::resetAll();
     }
 
@@ -143,55 +134,10 @@ class Factory extends \CApplicationComponent
      */
     public function resetTable($tableName)
     {
-        $initFile = self::getBasePath() . DIRECTORY_SEPARATOR . $tableName . $this->initScriptSuffix;
-        if (is_file($initFile)) {
+        if ($initFile = self::getFilePath($tableName, $this->initScriptSuffix)) {
             require($initFile);
         } else {
-            $this->truncateTable($tableName);
-        }
-    }
-
-    /**
-     * Enables or disables database integrity check.
-     * This method may be used to temporarily turn off foreign constraints check.
-     * @param boolean $check whether to enable database integrity check
-     */
-    public function checkIntegrity($check)
-    {
-        foreach ($this->schemas as $schema) {
-            $this->getDbConnection()->getSchema()->checkIntegrity($check, $schema);
-        }
-    }
-
-    /**
-     * Removes all rows from the specified table and resets its primary key sequence, if any.
-     * You may need to call {@link checkIntegrity} to turn off integrity check temporarily
-     * before you call this method.
-     * @param string $tableName the table name
-     * @throws \CException if given table does not exist
-     */
-    public function truncateTable($tableName)
-    {
-        $schema = $this->getDbConnection()->getSchema();
-        if (($table = $schema->getTable($tableName)) !== null) {
-            $this->getDbConnection()->createCommand()->truncateTable($table->name);
-        } else {
-            throw new \CException("Table '$tableName' does not exist.");
-        }
-    }
-
-    /**
-     * Truncates all tables in the specified schema.
-     * You may need to call {@link checkIntegrity} to turn off integrity check temporarily
-     * before you call this method.
-     * @param string $schema the schema name. Defaults to empty string, meaning the default database schema.
-     * @see truncateTable
-     */
-    public function truncateTables($schema = '')
-    {
-        $tableNames = $this->getDbConnection()->getSchema()->getTableNames($schema);
-        foreach ($tableNames as $tableName) {
-            $this->truncateTable($tableName);
+            $this->db->truncateTable($tableName);
         }
     }
 
@@ -278,10 +224,10 @@ class Factory extends \CApplicationComponent
      * @param string $class
      * @return YiiFactoryGirl\Builder
      */
-    public static function getBuilder($class)
+    public function getBuilder($class)
     {
         if (!isset(self::$_builders[$class])) {
-            self::setBuilder($class);
+            $this->setBuilder($class);
         }
         return self::$_builders[$class];
     }
@@ -291,13 +237,13 @@ class Factory extends \CApplicationComponent
      *
      * @return void
      */
-    private static function setBuilders()
+    private function setBuilders()
     {
         $suffixLen = strlen(self::INIT_SCRIPT_SUFFIX);
         foreach (self::getFiles(false) as $fileName) {
             if (substr($fileName, -$suffixLen) !== self::INIT_SCRIPT_SUFFIX) {
                 $class = strtr($fileName, array(self::FACTORY_FILE_SUFFIX.'.php' => ''));
-                self::setBuilder($class);
+                $this->setBuilder($class);
             }
         }
     }
@@ -308,12 +254,12 @@ class Factory extends \CApplicationComponent
      * @param string $class
      * @return void
      */
-    private static function setBuilder($class)
+    private function setBuilder($class)
     {
         $builder = new Builder($class);
         self::$_builders[$class] = $builder;
         if (self::$_builders[$class]->isActiveRecord()) {
-            self::$_tables[] = $builder->getTableName();
+            $this->db->addTable($builder->getTableName());
         }
     }
 
@@ -339,7 +285,7 @@ class Factory extends \CApplicationComponent
      * @param string $name method name
      * @return bool
      */
-    public static function isFactoryMethod($name)
+    private static function isFactoryMethod($name)
     {
         if (empty(self::$_factoryMethods)) {
             self::setFactoryMethods();
@@ -355,6 +301,7 @@ class Factory extends \CApplicationComponent
                 $reflection = new \ReflectionClass($match[1]);
                 if ($reflection->isSubclassOf('CActiveRecord')) {
                     self::$_factoryMethods[] = $name;
+                    self::$_callable[] = $name;
                     return true;
                 }
             } catch (\Exception $e) {
@@ -378,6 +325,37 @@ class Factory extends \CApplicationComponent
     }
 
     /**
+     * setReflectionMethods
+     *
+     * @return void
+     */
+    private static function setReflectionMethods()
+    {
+        $class = \ReflectionClass('YiiFactoryGirl\Factory');
+        $selfMethods = $class->getMethods(\ReflectionMethod::IS_PUBLIC);
+        $class = \ReflectionClass('YiiFactoryGirl\Db');
+        $dbMethods = $class->getMethods(\ReflectionMethod::IS_PUBLIC);
+        self::$_reflectionMethods = array_merge($selfMethods, $dbMethods);
+    }
+
+    /**
+     * isCallable
+     *
+     * @param string $name
+     * @return bool
+     */
+    public static function isCallable($name)
+    {
+        if (is_null(self::$_callable)) {
+            self::setFactoryMethods();
+            self::setReflectionMethods();
+            self::$_callable = array_merge(self::$_factoryMethods, self::$_reflectionMethods);
+        }
+
+        return in_array($name, self::$_callable) || self::isFactoryMethod($name);
+    }
+
+    /**
      * __call
      *
      * This method emulates factory method
@@ -395,6 +373,10 @@ class Factory extends \CApplicationComponent
             @list($attr, $alias) = $args;
             if (!$attr) $attr = array();
             return $this->create($class, $attr, $alias);
+        }
+
+        if (is_callable(array($this->db, $name))) {
+            return call_user_func_array(array($this->db, $name), $args);
         }
 
         return parent::__call($name, $args);

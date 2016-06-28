@@ -21,7 +21,7 @@ class Creator
      */
     public static function create(\CActiveRecord $obj, $relations = array())
     {
-        $schema = Factory::getDbConnection()->getSchema();
+        $schema = Factory::getComponent()->getDbConnection()->getSchema();
         $builder = $schema->getCommandBuilder();
         $table = $schema->getTable($obj->tableName());
 

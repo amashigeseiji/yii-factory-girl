@@ -114,7 +114,7 @@ abstract class FactoryTestCase extends UnitTestCase
      */
     public function __call($name, $args)
     {
-        if (Factory::isFactoryMethod($name) || is_callable(array('\YiiFactoryGirl\Factory', $name))) {
+        if (Factory::isCallable($name)) {
             return call_user_func_array(array(Factory::getComponent(), $name), $args);
         }
 

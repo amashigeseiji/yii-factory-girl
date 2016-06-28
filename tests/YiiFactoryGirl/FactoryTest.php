@@ -14,13 +14,6 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
         YiiFactoryGirl\Factory::getComponent()->prepare();
     }
 
-    public function setUp()
-    {
-        if (self::$component && self::$component->connectionID !== 'db') {
-            $this->resetComponent();
-        }
-    }
-
     /**
      * testGetFilesSuccess
      *
@@ -74,28 +67,6 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
                     return $this->getComponent()->getDbConnection();
                 },
                 'expect' => 'CDbConnection'
-            )
-        );
-    }
-
-    /**
-     * testGetDbConnectionFail
-     *
-     * @return array
-     */
-    public function testGetDbConnectionFail()
-    {
-        return array(
-            array(
-                'exception' => array('CException', '\YiiFactoryGirl\Factory.connectionID "migrate" is invalid'),
-                'callback'  => function() {
-                    $component = $this->getComponent(array('connectionID' => 'migrate'), true);
-                    $reflection = new ReflectionObject($component);
-                    $property = $reflection->getProperty('_db');
-                    $property->setAccessible(true);
-                    $property->setValue($component, null);
-                    $component->getDbConnection();
-                }
             )
         );
     }
@@ -474,6 +445,7 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
     /**
      * testIsFactoryMethodSuccess
      *
+     * todo add isCallable test case
      * @return array
      */
     public function testIsFactoryMethodSuccess()
@@ -486,7 +458,7 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
                     $property = $reflection->getProperty('_factoryMethods');
                     $property->setAccessible(true);
                     $property->setValue(null);
-                    return $this->getComponent()->isFactoryMethod($name);
+                    return $this->getComponent()->isCallable($name);
                 }
             );
         };
