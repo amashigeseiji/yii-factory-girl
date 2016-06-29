@@ -443,19 +443,19 @@ class FactoryTest extends YiiFactoryGirl\UnitTestCase
     }
 
     /**
-     * testIsFactoryMethodSuccess
+     * testIsCallableSuccess
      *
      * todo add isCallable test case
      * @return array
      */
-    public function testIsFactoryMethodSuccess()
+    public function testIsCallableSuccess()
     {
         $assert = function($assert, $name) {
             return array(
                 'assert' => $assert,
                 'callback' => function() use($name) {
                     $reflection = new ReflectionClass('YiiFactoryGirl\Factory');
-                    $property = $reflection->getProperty('_factoryMethods');
+                    $property = $reflection->getProperty('_callable');
                     $property->setAccessible(true);
                     $property->setValue(null);
                     return $this->getComponent()->isCallable($name);

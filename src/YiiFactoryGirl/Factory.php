@@ -280,39 +280,6 @@ class Factory extends \CApplicationComponent
     }
 
     /**
-     * isFactoryMethod
-     *
-     * @param string $name method name
-     * @return bool
-     */
-    private static function isFactoryMethod($name)
-    {
-        if (empty(self::$_factoryMethods)) {
-            self::setFactoryMethods();
-        }
-
-        if (in_array($name, self::$_factoryMethods)) {
-            return true;
-        }
-
-        if (preg_match('/(.*)'.self::FACTORY_METHOD_SUFFIX.'$/', $name, $match)) {
-            try {
-                // TODO when not ActiveRecord
-                $reflection = new \ReflectionClass($match[1]);
-                if ($reflection->isSubclassOf('CActiveRecord')) {
-                    self::$_factoryMethods[] = $name;
-                    self::$_callable[] = $name;
-                    return true;
-                }
-            } catch (\Exception $e) {
-                //do nothing
-            }
-        }
-
-        return false;
-    }
-
-    /**
      * setFactoryMethods
      *
      * @return void
@@ -331,11 +298,12 @@ class Factory extends \CApplicationComponent
      */
     private static function setReflectionMethods()
     {
-        $class = \ReflectionClass('YiiFactoryGirl\Factory');
-        $selfMethods = $class->getMethods(\ReflectionMethod::IS_PUBLIC);
-        $class = \ReflectionClass('YiiFactoryGirl\Db');
-        $dbMethods = $class->getMethods(\ReflectionMethod::IS_PUBLIC);
-        self::$_reflectionMethods = array_merge($selfMethods, $dbMethods);
+        self::$_reflectionMethods = array_map(
+            function($method) { return $method->name; },
+            array_merge(
+                (new \ReflectionClass('YiiFactoryGirl\Db'))->getMethods(\ReflectionMethod::IS_PUBLIC),
+                (new \ReflectionClass('YiiFactoryGirl\Factory'))->getMethods(\ReflectionMethod::IS_PUBLIC)
+        ));
     }
 
     /**
@@ -352,7 +320,25 @@ class Factory extends \CApplicationComponent
             self::$_callable = array_merge(self::$_factoryMethods, self::$_reflectionMethods);
         }
 
-        return in_array($name, self::$_callable) || self::isFactoryMethod($name);
+        if(in_array($name, self::$_callable)) {
+            return true;
+        }
+
+        if (preg_match('/(.*)'.self::FACTORY_METHOD_SUFFIX.'$/', $name, $match)) {
+            try {
+                // TODO when not ActiveRecord
+                $reflection = new \ReflectionClass($match[1]);
+                if ($reflection->isSubclassOf('\CActiveRecord')) {
+                    self::$_factoryMethods[] = $name;
+                    self::$_callable[] = $name;
+                    return true;
+                }
+            } catch (\Exception $e) {
+                //do nothing
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -368,15 +354,19 @@ class Factory extends \CApplicationComponent
      */
     public function __call($name, $args)
     {
-        if (self::isFactoryMethod($name)) {
-            $class = str_replace(self::FACTORY_METHOD_SUFFIX, '', $name);
-            @list($attr, $alias) = $args;
-            if (!$attr) $attr = array();
-            return $this->create($class, $attr, $alias);
+        if (!self::isCallable($name)) {
+            throw new FactoryException('Undefined method call: ' . $name);
         }
 
         if (is_callable(array($this->db, $name))) {
             return call_user_func_array(array($this->db, $name), $args);
+        }
+
+        if (in_array($name, self::$_factoryMethods)) {
+            $class = str_replace(self::FACTORY_METHOD_SUFFIX, '', $name);
+            $attr  = isset($args[0]) ? $args[0] : array();
+            $alias = isset($args[1]) ? $args[1] : null;
+            return $this->create($class, $attr, $alias);
         }
 
         return parent::__call($name, $args);
