@@ -21,32 +21,28 @@ class Creator
      */
     public static function create(\CActiveRecord $obj, $relations = array())
     {
-        $schema = Factory::getDbConnection()->getSchema();
-        $builder = $schema->getCommandBuilder();
-        $table = $schema->getTable($obj->tableName());
-
-        // attributes to insert
+        $db = Factory::getComponent()->getDb();
+        $table = $obj->getTableSchema();
         $attributes = $obj->getAttributes();
 
-        // make sure it gets inserted
-        $schema->checkIntegrity(false);
-        $builder->createInsertCommand($table, $attributes)->execute();
+        if (!$db->insert($table->name, $attributes)) {
+            throw new FactoryException('YiiFactoryGirl\Db failed to insert');
+        }
 
-        $primaryKey = $table->primaryKey;
         if ($table->sequenceName !== null) {
+            $primaryKey = $table->primaryKey;
             if (is_string($primaryKey) && !isset($attributes[$primaryKey])) {
-                $obj->{$primaryKey} = $builder->getLastInsertID($table);
+                $obj->{$primaryKey} = $db->getLastInsertID($table->name);
             } elseif(is_array($primaryKey)) {
                 foreach($primaryKey as $pk) {
                     if (!isset($attributes[$pk])) {
-                        $obj->{$pk} = $builder->getLastInsertID($table);
+                        $obj->{$pk} = $db->getLastInsertID($table->name);
                         break;
                     }
                 }
             }
         }
 
-        $schema->checkIntegrity(true);
 
         $obj->setScenario('update');
         $obj->setIsNewRecord(false);
